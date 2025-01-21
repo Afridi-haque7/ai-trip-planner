@@ -1,6 +1,7 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import dbConnect from "@/lib/dbConnect";
 
 export default function Home() {
   return (

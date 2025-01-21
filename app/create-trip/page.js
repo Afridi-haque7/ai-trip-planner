@@ -1,6 +1,7 @@
 "use client";
 
 import InputForm from "@/components/form/InputForm";
+import TripResult from "@/components/form/TripResult";
 
 const CreateTrip = () => {
   return (

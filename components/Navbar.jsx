@@ -35,7 +35,9 @@ function Navbar() {
 
         {/* Nav items */}
         <div>
-          <Button variant="default">Sign Up</Button>
+          <Link href='/sign-in'>
+            <Button variant="default">Sign Up</Button>
+          </Link>
         </div>
       </nav>
     </>
