@@ -69,15 +69,15 @@ function InputForm() {
     }
 
     const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. 
-    Give me a hotel-option list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. 
+    Give me a hotel-option list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give an animated picture url of the place.
     Also generate a day-to-day itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). 
-    Suggest some famous authentic cuisines(max-3) of that place with picture urls. Return all the data in JSON format.`;
+    Suggest some famous authentic cuisines(max-3) of that place with picture urls. Return all the data in JSON format. Generate estimated cost for the trip. Give all the image urls (hotel, dishes) that are accessible, don't just give them from any cdn.`;
 
     // send to gemini model
 
     try {
       const result = await chatSession.sendMessage(prompt);
-      console.log(result?.response?.text());
+      // console.log(result?.response?.text());
 
       if (!result) {
         console.error("No result found");
@@ -87,6 +87,8 @@ function InputForm() {
       // send Data to database
       const data = result?.response?.text();
       const parsedData = JSON.parse(data);
+      console.log(parsedData);
+      
       setResultData(parsedData);
     } catch (error) {
       console.log("Error generating response: ", error);
@@ -149,17 +151,20 @@ function InputForm() {
                   onClick={() =>
                     setFormData({ ...formData, budget: item.value })
                   }
-                  className={`border border-zinc-500/40 rounded-lg shadow-lg 
+                  className={`border border-zinc-500/40 rounded-lg shadow-lg flex justify-evenly items-center
                 px-4 py-4 text-center transition-all duration-200 cursor-pointer
                 ${
                   formData.budget === item.value
-                    ? "bg-slate-200 scale-105"
+                    ? "bg-slate-200 scale-105 border-black"
                     : "hover:bg-slate-200"
                 }
                 `}
                 >
-                  <h2 className="text-md font-medium">{item.title}</h2>
-                  <p className="text-sm text-gray-500">{item.description}</p>
+                  <img src={item.icon} alt="" className="w-12 h-12" />
+                  <span>
+                    <h2 className="text-md font-medium">{item.title}</h2>
+                    <p className="text-sm text-gray-500">{item.description}</p>
+                  </span>
                 </div>
               ))}
             </div>
@@ -177,18 +182,25 @@ function InputForm() {
                   onClick={() =>
                     setFormData({ ...formData, members: item.value })
                   }
-                  className={`border border-zinc-500/40 rounded-lg shadow-lg 
+                  className={`border border-zinc-500/40 rounded-lg shadow-lg flex gap-4
                 px-4 py-4 text-center transition-all duration-200 cursor-pointer
                 ${
                   formData.members === item.value
-                    ? "bg-slate-200 scale-105"
+                    ? "bg-slate-200 scale-105 border-black"
                     : "hover:bg-slate-200"
                 }
                 `}
                 >
-                  <h2 className="text-md font-medium">{item.title}</h2>
-                  <p className="text-xs text-gray-500">{item.description}</p>
-                  <p className="text-sm text-gray-500">{item.people}</p>
+                  <img
+                    src={item.icon}
+                    alt=""
+                    className="w-14"
+                  />
+                  <span>
+                    <h2 className="text-md font-medium">{item.title}</h2>
+                    <p className="text-xs text-gray-500">{item.description}</p>
+                    <p className="text-sm text-gray-500">{item.people}</p>
+                  </span>
                 </div>
               ))}
             </div>
