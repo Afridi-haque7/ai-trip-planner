@@ -58,11 +58,11 @@ function TripResult({ data }) {
       <p className="font-semibold text-xl mt-10 text-center">
         Top Hotels that suits your pocket
       </p>
-      <div className="flex gap-2 flex-wrap justify-center items-start">
+      <div className="flex gap-2 flex-wrap overflow-hidden justify-center items-start">
         {hotelOptions && hotelOptions.length > 0 ? (
           hotelOptions.map((item, index) => (
             <div key={index} className="flex flex-row p-1 gap-4 ">
-              <Card className="border max-w-[300px] h-[475px] p-0 border-gray-500/10 shadow-md">
+              <Card className="border max-w-[300px] min-h-[475px] overflow-hidden p-0 border-gray-500/10 shadow-md">
                 <CardHeader>
                   <img
                     src={item.imageUrl}
@@ -109,11 +109,14 @@ function TripResult({ data }) {
       </p>
       <div>
         {itinerary ? (
-          <div className="mx-auto flex gap-4 flex-wrap justify-center">
+          <div className="mx-auto  flex gap-4 flex-wrap justify-center">
             {/* <p>Day - 1</p> */}
             {itinerary?.day1 && itinerary?.day1?.length > 0 ? (
               itinerary?.day1?.map((item, index) => (
-                <Card key={index} className="w-[300px] h-[365px] shadow-lg">
+                <Card
+                  key={index}
+                  className="w-[300px] overflow-hidden min-h-[365px] shadow-lg"
+                >
                   <CardHeader>
                     <img
                       src={item.imgUrl}
@@ -142,14 +145,14 @@ function TripResult({ data }) {
       <p className="font-semibold text-xl mt-10 text-center">
         Authentic Dishes to try out{" "}
       </p>
-      <div className="flex gap-4 flex-wrap">
+      <div className="flex gap-4 flex-wrap justify-center overflow-hidden">
         {authenticDishes && authenticDishes.length > 0 ? (
           authenticDishes.map((item, index) => (
             <div
               key={index}
               className="mx-auto flex gap-4 flex-wrap justify-center"
             >
-              <Card className="border-2 w-[300px] h-[350px] border-gray-500/10 shadow-md">
+              <Card className="border-2 overflow-hidden w-[300px] min-h-[350px] border-gray-500/10 shadow-md">
                 <CardHeader>
                   <img
                     src={item.imageUrl}
