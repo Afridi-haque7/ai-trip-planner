@@ -19,7 +19,7 @@ const CreateTrip = () => {
             customized itenerary just for you.
           </p>
         </div>
-        <div className="my-16 p-4 border rounded-2xl bg-slate-200/20">
+        <div className="my-16 mx-1 md:mx-4 p-2 md:p-4 border rounded-2xl bg-slate-200/30">
           <InputForm />
         </div>
       </main>

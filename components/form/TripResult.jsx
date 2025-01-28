@@ -8,6 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 import { Button } from "@/components/ui/button";
 import { MapPinned, Star } from "lucide-react";
 
@@ -24,33 +35,34 @@ function TripResult({ data }) {
   // console.log(hotelOptions);
 
   return (
-    <div className="flex flex-col gap-4 mx-auto">
-      <div className="text-lg font-semibold">Trip Results with AI</div>
+    <div className="flex flex-col gap-8 mx-auto">
+      <div className="text-2xl mt-8 md:text-4xl font-bold text-center">
+        Trip Results with AI
+      </div>
       {/* trip details */}
       <div>
-        <h2 className="text-md font-semibold">Details of you Trip:</h2>
-        <div>
-          <p>
-            <span>Location:</span> {tripDetails?.location || "NA"}
-          </p>
-          <p>
-            <span>Duration:</span> {tripDetails?.duration || "N/A"}
-          </p>
-          <p>
-            <span>Budget:</span> {tripDetails?.budget || "N/A"}
-          </p>
-          <p>
-            <span>Travelers:</span> {tripDetails?.travelers || "N/A"}
-          </p>
-        </div>
+        {/* <h2 className="text-md font-semibold">Details of you Trip:</h2> */}
+
+        <p className="text-lg px-4 ">
+          {`Showing result for a trip requested by you to ${
+            tripDetails?.location
+          } for ${tripDetails?.duration} with a ${
+            tripDetails?.budget == "Cheap"
+              ? "Pocket-friendly"
+              : tripDetails?.budget
+          } budget for ${tripDetails?.travelers} traveler(s)`}
+        </p>
       </div>
 
       {/* hotel details */}
-      <div className="flex gap-4 flex-wrap justify-center items-center">
+      <p className="font-semibold text-xl mt-10 text-center">
+        Top Hotels that suits your pocket
+      </p>
+      <div className="flex gap-2 flex-wrap justify-center items-start">
         {hotelOptions && hotelOptions.length > 0 ? (
           hotelOptions.map((item, index) => (
-            <div key={index} className="flex flex-row p-2 gap-4 max-w-[350px]">
-              <Card className="border-2 border-gray-500/10 shadow-md">
+            <div key={index} className="flex flex-row p-1 gap-4 ">
+              <Card className="border max-w-[300px] h-[475px] p-0 border-gray-500/10 shadow-md">
                 <CardHeader>
                   <img
                     src={item.imageUrl}
@@ -64,8 +76,8 @@ function TripResult({ data }) {
                     {item.address}
                   </CardDescription>
                   <div className="flex gap-2">
-                    <span className="px-2 py-1 text-center text-xs border bg-gray-500/10 rounded-full">
-                      {item.price}
+                    <span className="px-2 py-1 text-center text-s border bg-gray-500/10 rounded-full">
+                      {item.price.slice(14)}
                     </span>
                     <span className="px-2 text-center py-1 text-xs border bg-gray-500/10 rounded-full flex">
                       <span>
@@ -92,25 +104,28 @@ function TripResult({ data }) {
       </div>
 
       {/* itinerary */}
+      <p className="font-semibold text-xl mt-10 text-center">
+        Famous Places to Visit
+      </p>
       <div>
         {itinerary ? (
           <div className="mx-auto flex gap-4 flex-wrap justify-center">
             {/* <p>Day - 1</p> */}
-            {itinerary.day1.activities.length > 0 ? (
-              itinerary.day1.activities.map((item, index) => (
-                <Card key={index} className="max-w-[300px]">
+            {itinerary?.day1 && itinerary?.day1?.length > 0 ? (
+              itinerary?.day1?.map((item, index) => (
+                <Card key={index} className="w-[300px] h-[365px] shadow-lg">
                   <CardHeader>
                     <img
                       src={item.imgUrl}
                       alt={item.name}
                       width={250}
                       height={150}
-                      className="border border-black rounded-lg"
+                      className="border border-black shadow-md rounded-lg"
                     />
                     <CardTitle>{item.name}</CardTitle>
                     <CardDescription>{item.location}</CardDescription>
                   </CardHeader>
-                  <CardContent>{item.details}</CardContent>
+                  <CardContent>{item.description}</CardContent>
                 </Card>
               ))
             ) : (
@@ -124,11 +139,17 @@ function TripResult({ data }) {
 
       {/* authentic dishes */}
 
+      <p className="font-semibold text-xl mt-10 text-center">
+        Authentic Dishes to try out{" "}
+      </p>
       <div className="flex gap-4 flex-wrap">
         {authenticDishes && authenticDishes.length > 0 ? (
           authenticDishes.map((item, index) => (
-            <div key={index} className="flex flex-row p-2 gap-4 max-w-[300px]">
-              <Card className="border-2 border-gray-500/10 shadow-md">
+            <div
+              key={index}
+              className="mx-auto flex gap-4 flex-wrap justify-center"
+            >
+              <Card className="border-2 w-[300px] h-[350px] border-gray-500/10 shadow-md">
                 <CardHeader>
                   <img
                     src={item.imageUrl}
@@ -152,37 +173,60 @@ function TripResult({ data }) {
       </div>
 
       {/* Estimated cost */}
-      <div className="flex gap-4">
-        {estimatedCost ? (
-          <div className="flex gap-4 px-10 py-4 mb-10 border shadow-lg">
-            <p className="text-lg font-semibold text-center">
-              Let's calculate your estimated cost:
-            </p>
-            <div>
-              <ul className="flex flex-col gap-2 justify-center">
-                <li className="flex gap-4 justify-around items-center">
-                  <span>Hotel cost :- </span>
-                  <span>{estimatedCost.hotel}</span>
-                </li>
-                <li className="flex gap-4 justify-around items-center">
-                  <span>Food cost :- </span>
-                  <span>{estimatedCost.food}</span>
-                </li>
-                <li className="flex gap-4 justify-around items-center">
-                  <span>Transportation Charge :- </span>
-                  <span>{estimatedCost.transportation}</span>
-                </li>
-                <li className="flex gap-4 justify-around items-center">
-                  <span>Site Seeing Fare :- </span>
-                  <span>{estimatedCost.attractions}</span>
-                </li>
-              </ul>
+      <p className="font-semibold text-xl mt-10 text-center">
+        Let's Estimate your Trip Cost
+      </p>
 
-              <p className="flex gap-4 justify-around items-center">
-                <span>Total cost :- </span>
-                <span>{estimatedCost.total}</span>
-              </p>
-            </div>
+      <div className="">
+        {estimatedCost ? (
+          <div className="flex bg-white flex-col mx-auto rounded-xl max-w-[450px] gap-4 px-4 py-4 mb-10 border-2 shadow-lg">
+            <Table>
+              <TableCaption>A list of your recent invoices.</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left">Invoice</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+
+              <TableBody>
+                <TableRow>
+                  <TableCell>Hotel Cost</TableCell>
+                  <TableCell className="text-right">
+                    {estimatedCost.hotel}
+                  </TableCell>
+                </TableRow>
+
+                <TableRow>
+                  <TableCell>Food Bill</TableCell>
+                  <TableCell className="text-right">
+                    {estimatedCost.food}
+                  </TableCell>
+                </TableRow>
+
+                <TableRow>
+                  <TableCell>Transport Charge</TableCell>
+                  <TableCell className="text-right">
+                    {estimatedCost.transport}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Site Seeing Fees</TableCell>
+                  <TableCell className="text-right">
+                    {estimatedCost.attractions}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+
+              <TableFooter className="bg-slate-200/40">
+                <TableRow>
+                  <TableCell>Overall Cost</TableCell>
+                  <TableCell className="text-right">
+                    {estimatedCost.totalCost}
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
           </div>
         ) : (
           <div>No cost information</div>

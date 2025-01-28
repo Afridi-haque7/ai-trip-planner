@@ -68,10 +68,9 @@ function InputForm() {
       return;
     }
 
-    const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. 
-    Give me a hotel-option list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give an animated picture url of the place.
-    Also generate a day-to-day itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). 
-    Suggest some famous authentic cuisines(max-3) of that place with picture urls. Return all the data in JSON format. Generate estimated cost for the trip. Give all the image urls (hotel, dishes) that are accessible, don't just give them from any cdn.`;
+    const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. Give a hotel list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give a picture url of the place.
+    Also generate a day-to-day itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). Suggest some famous authentic cuisines(max-3) of that place with picture urls. Generate estimated cost for the trip. Give all the image urls from google, don't use tripadvisor cdn. For itinerary response, give itinerary only for exact ${formData?.duration} days, don't generate unnecessary days.
+    Give the response in JSON format - locationImg: {url}, tripDetails: {location, duration, budget, travelers}, hotelOptions: [{name, address, price, imageUrl, geoCoordinates, rating, description}], itinerary: {day1: [{name, imgUrl, description, location, timings, entryFee}], day2: [{name, imgUrl, description, location, timings, entryFee}]}, authenticDishes: [{name, description, imageUrl}], estimatedCost: {hotel, food, transport, attractions, totalCost}`;
 
     // send to gemini model
 
@@ -102,7 +101,7 @@ function InputForm() {
       {resultData ? (
         <TripResult data={resultData} />
       ) : (
-        <form onSubmit={handleFormSubmit} className="flex flex-col gap-10">
+        <form onSubmit={handleFormSubmit} className="flex flex-col gap-10 px-4 py-8">
           {/* Location Input */}
           <div className="flex flex-col gap-2 py-2">
             <label htmlFor="" className="font-medium">
