@@ -1,9 +1,39 @@
 "use client";
-import React from "react";
+import React, {useEffect} from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 function Navbar() {
+  const { data : session} = useSession();
+  
+  useEffect(() => {
+    if (session) {
+      const name = session?.user?.name;
+      const email = session?.user?.email;
+
+      // API route
+      const saveUser = async () => {
+        const response = await fetch("/api/sign-up", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, email }),
+        });
+
+        if (response.ok) {
+          const user = await response.json();
+          console.log("User saved or retrieved:", user);
+        } else {
+          console.error("Failed to save user");
+        }
+      };
+
+      saveUser();
+    }
+  }, []);
+
   return (
     <>
       <nav
@@ -35,9 +65,12 @@ function Navbar() {
 
         {/* Nav items */}
         <div>
-          <Link href='/sign-in'>
-            <Button variant="default">Sign Up</Button>
-          </Link>
+        {session ? 
+        (<Button variant="default">{session?.user?.name.split(' ')[0]}</Button>) :
+            (<Button 
+            variant="default" 
+            onClick={() => signIn("google")}>Sign Up</Button>)
+        }
         </div>
       </nav>
     </>

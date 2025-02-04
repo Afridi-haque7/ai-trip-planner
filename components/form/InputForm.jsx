@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { BudgetOptions, MemberOptions } from "@/constants";
 import { Button } from "../ui/button";
@@ -8,16 +8,8 @@ import Autocomplete from "react-google-autocomplete";
 import { toast } from "sonner";
 import { chatSession } from "@/app/api/generate-trip/route";
 import TripResult from "./TripResult";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { FcGoogle } from "react-icons/fc";
-import { useGoogleLogin } from "@react-oauth/google";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 
 
@@ -30,26 +22,47 @@ function InputForm() {
   });
   const [resultData, setResultData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  // const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
+  const router = useRouter();
+  const { data : session} = useSession();
+  // console.log(session);
+  useEffect(() => {
+    if(session){
+      const fetchUserId = async () => {
+        const email = session.user.email;
 
+        try {
+          // Fetch the user's _id from MongoDB
+          const response = await fetch("/api/get-user-id", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email }),
+          });
 
-  // const login = useGoogleLogin({
-  //   onSuccess: tokenResponse => console.log(tokenResponse),
-  //   onError: error => console.log(error)
-  // });
+          if (response.ok) {
+            const user = await response.json();
+            const userId = user._id;
 
-  // const getUserProfile = (tokenInfo) => {
-  //   axios.get(``)
-  // }
+            router.push(`/create-trip/${userId}`);
+          } else {
+            console.error("Failed to fetch user ID");
+          }
+        } catch (error) {
+          console.error("Error fetching user ID:", error);
+        }
+      };
 
-  // const handleClick = () => {
-  //   const user = localStorage.getItem('user');
+      fetchUserId();
+      
+    }
+  }, [session, router]);
+  
 
-  //   if(!user){
-  //     setOpenDialog(true);
-  //     return;
-  //   }
-  // }
+        // console.log(userId);
+
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     // if any form field is missing, show a dialog
@@ -68,9 +81,10 @@ function InputForm() {
       return;
     }
 
+
     const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. Give a hotel list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give a picture url of the place.
-    Also generate a day-to-day itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). Suggest some famous authentic cuisines(max-3) of that place with picture urls. Generate estimated cost for the trip. Give all the image urls from google, don't use tripadvisor cdn. For itinerary response, give itinerary only for exact ${formData?.duration} days, don't generate unnecessary days.
-    Give the response in JSON format - locationImg: {url}, tripDetails: {location, duration, budget, travelers}, hotelOptions: [{name, address, price, imageUrl, geoCoordinates, rating, description}], itinerary: {day1: [{name, imgUrl, description, location, timings, entryFee}], day2: [{name, imgUrl, description, location, timings, entryFee}]}, authenticDishes: [{name, description, imageUrl}], estimatedCost: {hotel, food, transport, attractions, totalCost}`;
+    Also generate an itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). Suggest some famous authentic cuisines(max-3) of that place with picture urls. Generate estimated cost for the trip. Give all the image urls from google, don't use tripadvisor cdn. For itinerary response, give itinerary only for exact ${formData?.duration} days, don't generate unnecessary days.
+    Give the response in JSON format - locationImg: {url}, tripDetails: {location, duration, budget, travelers}, hotelOptions: [{name, address, price, imageUrl, geoCoordinates, rating, description}], itinerary: [{name, imgUrl, description, location, timings, entryFee}], authenticDishes: [{name, description, imageUrl}], estimatedCost: {hotel, food, transport, attractions, totalCost}`;
 
     // send to gemini model
 
@@ -92,6 +106,7 @@ function InputForm() {
     } catch (error) {
       console.log("Error generating response: ", error);
     }
+
   };
 
 
@@ -215,28 +230,6 @@ function InputForm() {
             </Button>
           </div>
 
-          {/* <div>
-            <Dialog open={openDialog}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle className="text-center">
-                    Sign Up with Google
-                  </DialogTitle>
-                  <DialogDescription>
-                    <p className="my-8 text-center">
-                      Sign Up with your Google account and enjoy your trip
-                    </p>
-                    <Button variant="outline" className="w-full" onClick={() => login()} >
-                      <span>
-                        <FcGoogle />
-                      </span>{" "}
-                      Sign Up with Google
-                    </Button>
-                  </DialogDescription>
-                </DialogHeader>
-              </DialogContent>
-            </Dialog>
-          </div> */}
         </form>
       )}
     </div>

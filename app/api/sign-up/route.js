@@ -1,56 +1,40 @@
-// import dbConnect from "@/lib/dbConnect";
-// import User from "@/models/User";
-// import bcrypt from "bcryptjs";
+import dbConnect from '@/lib/dbConnect'
+import User from '@/models/User'
 
-// export async function POST(request) {
-//   await dbConnect();
+export async function POST(request) {
+    const { name, email } = await request.json();
 
-//   try {
-//     const { name, email, password } = await request.json();
+    try {
+      await dbConnect(); // Connect to MongoDB
 
-//     // check if user email already exsist?
-//     const existingUser = await User.findOne({ email });
-//     if (existingUser) {
-//       return Response.json(
-//         {
-//           success: false,
-//           message: "User already exists",
-//         },
-//         { status: 400 }
-//       );
-//     }
+      // Check if the user already exists
+      const existingUser = await User.findOne({ email });
 
-//     //If first time user signing up, encrypt password
-//     const hashedPassWord = await bcrypt.hash(password, 10);
-//     const newUser = new User({
-//       name,
-//       email,
-//       password: hashedPassWord,
-//       createdAt,
-//       chatHistory: [],
-//     });
-//     console.log(newUser);
+      if (existingUser) {
+        // User exists, return the user
+        return new Response(JSON.stringify(existingUser), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json'}
+        });
+      } else {
+        // User does not exist, create a new user
+        const newUser = new User({
+          name,
+          email,
+          history: [], // Initialize history as an empty array
+        });
 
-//     // Save new user details to DB
-//     await newUser.save();
-
-//     return Response.json(
-//       {
-//         success: true,
-//         message: "User saved successfully",
-//       },
-//       { status: 200, body: JSON.stringify(newUser) }
-//     );
-//   } catch (error) {
-//     console.error("Error registering User", error);
-//     return Response.json(
-//       {
-//         success: false,
-//         message: "Error registering User",
-//       },
-//       {
-//         status: 500,
-//       }
-//     );
-//   }
-// }
+        await newUser.save(); // Save the new user to the database
+        return new Response(JSON.stringify(newUser), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } catch (error) {
+      console.error("Error saving user:", error);
+      return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+}

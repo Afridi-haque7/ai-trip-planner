@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const HotelSchema = new mongoose.Schema({
   name: { type: String},
-  address: { type: String },
+  address: { type: String},
   price: { type: String },
   imageUrl: { type: String },
   geoCoordinates: {
@@ -17,13 +17,12 @@ const ActivitySchema = new mongoose.Schema({
   name: { type: String },
   imageUrl: { type: String },
   location: { type: String },
-  details: { type: String },
+  description: { type: String },
   timings: { type: String },
   entryFee: { type: String },
 });
 
 const ItineraryDaySchema = new mongoose.Schema({
-  theme: { type: String },
   activities: [ActivitySchema],
 });
 
@@ -40,29 +39,18 @@ const TripDetailsSchema = new mongoose.Schema({
   travelers: { type: Number },
 });
 
+const CostSchema = new mongoose.Schema({
+  hotel: { type: String },
+  food: { type: String },
+  transport: { type: String },
+  attractions: { type: String },
+  totalCost: { type: String },
+})
+
 
 
 const ChatSchema = new mongoose.Schema({
-  location: {
-    type: String,
-    required: true,
-    default: "",
-  },
-  days: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  members: {
-    type: Number,
-    required: true,
-    default: 0,
-  },
-  budget: {
-    type: String,
-    required: true,
-    default: "",
-  },
+  locationImg: { type: String },
   tripDetails: TripDetailsSchema,
   hotelOptions: [HotelSchema],
   itinerary: [ItineraryDaySchema],

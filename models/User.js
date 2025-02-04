@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import Chats from "./Trip";
 
 const UserSchema = new mongoose.Schema({
   name: {
@@ -11,6 +10,12 @@ const UserSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  history: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Chats", // Reference the Chats model
+    },
+  ],
 });
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);

@@ -111,8 +111,8 @@ function TripResult({ data }) {
         {itinerary ? (
           <div className="mx-auto  flex gap-4 flex-wrap justify-center">
             {/* <p>Day - 1</p> */}
-            {itinerary?.day1 && itinerary?.day1?.length > 0 ? (
-              itinerary?.day1?.map((item, index) => (
+            {itinerary && itinerary?.length > 0 ? (
+              itinerary?.map((item, index) => (
                 <Card
                   key={index}
                   className="w-[300px] overflow-hidden min-h-[365px] shadow-lg"

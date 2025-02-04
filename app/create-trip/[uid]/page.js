@@ -2,7 +2,8 @@
 
 import InputForm from "@/components/form/InputForm";
 
-const CreateTrip = () => {
+const CreateTrip = ({params}) => {
+    const {id} = params;    // some issue is there
   return (
     <div className="w-full flex justify-center itemms-center py-4 px-4 lg:px-2">
       <main className="mt-32 relative inset-0">
@@ -11,7 +12,7 @@ const CreateTrip = () => {
             className="text-2xl md:text-3xl lg:text-5xl font-bold text-center 
           bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent"
           >
-            Tell Us Your Travel Preferences
+            {`Tell Us Your Travel Preferences ${id}`} 
           </h1>
           <p className="text-center mx-auto px-2 mt-10 text-md text-gray-500">
             Just provide some basic information, and Trip Tailor will generate a
