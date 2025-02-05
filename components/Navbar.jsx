@@ -1,12 +1,12 @@
 "use client";
-import React, {useEffect} from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 
 function Navbar() {
-  const { data : session} = useSession();
-  
+  const { data: session } = useSession();
+
   useEffect(() => {
     if (session) {
       const name = session?.user?.name;
@@ -65,12 +65,32 @@ function Navbar() {
 
         {/* Nav items */}
         <div>
-        {session ? 
-        (<Button variant="default">{session?.user?.name.split(' ')[0]}</Button>) :
-            (<Button 
-            variant="default" 
-            onClick={() => signIn("google")}>Sign Up</Button>)
-        }
+          {session ? (
+            <div className="flex gap-2 md:gap-4 justify-center items-center">
+              <Link href="/dashboard">
+                <p className="text-xl font-semibold">{session?.user?.name.split(" ")[0]}</p>
+              </Link>
+              <Button
+                variant="default"
+                onClick={() =>
+                  signOut({ callbackUrl: "http://localhost:3000" })
+                }
+              >
+                Sign Out
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="default"
+              onClick={() =>
+                signIn("google", {
+                  callbackUrl: "http://localhost:3000/create-trip",
+                })
+              }
+            >
+              Sign Up
+            </Button>
+          )}
         </div>
       </nav>
     </>

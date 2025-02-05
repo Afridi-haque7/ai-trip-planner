@@ -8,7 +8,7 @@ import Autocomplete from "react-google-autocomplete";
 import { toast } from "sonner";
 import { chatSession } from "@/app/api/generate-trip/route";
 import TripResult from "./TripResult";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 
@@ -22,13 +22,12 @@ function InputForm() {
   });
   const [resultData, setResultData] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
-  // const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
   const router = useRouter();
-  const { data : session} = useSession();
-  // console.log(session);
+  const { data: session } = useSession();
+
   useEffect(() => {
-    if(session){
+    if (session) {
       const fetchUserId = async () => {
         const email = session.user.email;
 
@@ -56,15 +55,14 @@ function InputForm() {
       };
 
       fetchUserId();
-      
     }
   }, [session, router]);
-  
 
-        // console.log(userId);
+  // console.log(userId);
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();
+
     // if any form field is missing, show a dialog
     if (
       !formData?.location ||
@@ -81,42 +79,72 @@ function InputForm() {
       return;
     }
 
-
-    const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. Give a hotel list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give a picture url of the place.
+    if (session) {
+      const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. Give a hotel list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give a picture url of the place.
     Also generate an itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). Suggest some famous authentic cuisines(max-3) of that place with picture urls. Generate estimated cost for the trip. Give all the image urls from google, don't use tripadvisor cdn. For itinerary response, give itinerary only for exact ${formData?.duration} days, don't generate unnecessary days.
     Give the response in JSON format - locationImg: {url}, tripDetails: {location, duration, budget, travelers}, hotelOptions: [{name, address, price, imageUrl, geoCoordinates, rating, description}], itinerary: [{name, imgUrl, description, location, timings, entryFee}], authenticDishes: [{name, description, imageUrl}], estimatedCost: {hotel, food, transport, attractions, totalCost}`;
 
-    // send to gemini model
+      // send to gemini model
 
-    try {
-      const result = await chatSession.sendMessage(prompt);
-      // console.log(result?.response?.text());
+      try {
+        const result = await chatSession.sendMessage(prompt);
 
-      if (!result) {
-        console.error("No result found");
-        return;
+        if (!result) {
+          console.error("No result found");
+          return;
+        }
+
+        // send Data to database
+        const data = result?.response?.text();
+        const parsedData = JSON.parse(data);
+        console.log(parsedData);
+
+        setResultData(parsedData);
+      } catch (error) {
+        console.log("Error generating response: ", error);
       }
+    } else {
 
-      // send Data to database
-      const data = result?.response?.text();
-      const parsedData = JSON.parse(data);
-      console.log(parsedData);
-      
-      setResultData(parsedData);
-    } catch (error) {
-      console.log("Error generating response: ", error);
+
+
+      return signIn("google", { callbackUrl: window.location.href });
+      // If user is not signed in
+      // try {
+      // Redirect user to sign-up page
+      //   const signUpResponse = await fetch("/api/sign-up", {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //     body: JSON.stringify({
+      //       name: formData?.name, // Assuming you have a name field in the form
+      //       email: formData?.email, // Assuming you have an email field in the form
+      //     }),
+      //   });
+      //   if (signUpResponse.ok) {
+      //     const user = await signUpResponse.json();
+      //     const userId = user._id;
+      //     // Redirect to the dynamic route /create-trip/[id]
+      //     router.push(`/create-trip/${userId}`);
+      //   } else {
+      //     console.error("Failed to sign up user");
+      //   }
+      // } catch (error) {
+      //   console.error("Error during sign-up:", error);
+      // }
+      // }
     }
-
   };
-
-
 
   return (
     <div className="">
       {resultData ? (
         <TripResult data={resultData} />
       ) : (
-        <form onSubmit={handleFormSubmit} className="flex flex-col gap-10 px-4 py-8">
+        <form
+          onSubmit={handleFormSubmit}
+          className="flex flex-col gap-10 px-4 py-8"
+        >
           {/* Location Input */}
           <div className="flex flex-col gap-2 py-2">
             <label htmlFor="" className="font-medium">
@@ -205,11 +233,7 @@ function InputForm() {
                 }
                 `}
                 >
-                  <img
-                    src={item.icon}
-                    alt=""
-                    className="w-14"
-                  />
+                  <img src={item.icon} alt="" className="w-14" />
                   <span>
                     <h2 className="text-md font-medium">{item.title}</h2>
                     <p className="text-xs text-gray-500">{item.description}</p>
@@ -229,7 +253,6 @@ function InputForm() {
               Generate Trip
             </Button>
           </div>
-
         </form>
       )}
     </div>
