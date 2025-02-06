@@ -21,7 +21,7 @@ function InputForm() {
     members: null,
   });
   const [resultData, setResultData] = useState(null);
-  const [openDialog, setOpenDialog] = useState(false);
+  const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
   const router = useRouter();
   const { data: session } = useSession();
@@ -43,9 +43,10 @@ function InputForm() {
 
           if (response.ok) {
             const user = await response.json();
-            const userId = user._id;
+            const user_id = user._id;
+            setUserId(user_id);
 
-            router.push(`/create-trip/${userId}`);
+            router.push(`/create-trip/${user_id}`);
           } else {
             console.error("Failed to fetch user ID");
           }
@@ -96,43 +97,35 @@ function InputForm() {
 
         // send Data to database
         const data = result?.response?.text();
-        const parsedData = JSON.parse(data);
-        console.log(parsedData);
 
+        const parsedData = JSON.parse(data);
+
+        // Store the response in database collection
+        const storeTripResponse = await fetch("/api/store-trip", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId,
+            tripData: parsedData, // Pass the parsed trip data
+          }),
+        });
+
+        if (storeTripResponse.ok) {
+          const storedTrip = await storeTripResponse.json();
+          console.log("Trip stored successfully:", storedTrip);
+          setResultData(parsedData); // Update the state with the trip data
+        } else {
+          console.error("Failed to store trip");
+        }
         setResultData(parsedData);
       } catch (error) {
-        console.log("Error generating response: ", error);
+        console.log("Error generating response or storing trip ", error);
       }
     } else {
-
-
-
       return signIn("google", { callbackUrl: window.location.href });
-      // If user is not signed in
-      // try {
-      // Redirect user to sign-up page
-      //   const signUpResponse = await fetch("/api/sign-up", {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //     },
-      //     body: JSON.stringify({
-      //       name: formData?.name, // Assuming you have a name field in the form
-      //       email: formData?.email, // Assuming you have an email field in the form
-      //     }),
-      //   });
-      //   if (signUpResponse.ok) {
-      //     const user = await signUpResponse.json();
-      //     const userId = user._id;
-      //     // Redirect to the dynamic route /create-trip/[id]
-      //     router.push(`/create-trip/${userId}`);
-      //   } else {
-      //     console.error("Failed to sign up user");
-      //   }
-      // } catch (error) {
-      //   console.error("Error during sign-up:", error);
-      // }
-      // }
+      
     }
   };
 

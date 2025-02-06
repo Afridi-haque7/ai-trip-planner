@@ -50,11 +50,13 @@ const CostSchema = new mongoose.Schema({
 
 
 const ChatSchema = new mongoose.Schema({
-  locationImg: { type: String },
+  userId: { type: String, required: true },
+  locationImg: { url: { type: String } },
   tripDetails: TripDetailsSchema,
   hotelOptions: [HotelSchema],
   itinerary: [ItineraryDaySchema],
   authenticDishes: [DishSchema],
+  totalCost: CostSchema,
   createdAt: {
     type: Date,
     default: Date.now(),
