@@ -20,7 +20,7 @@ function InputForm() {
     budget: null,
     members: null,
   });
-  const [resultData, setResultData] = useState(null);
+  // const [resultData, setResultData] = useState(null);
   const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
   const router = useRouter();
@@ -115,11 +115,14 @@ function InputForm() {
         if (storeTripResponse.ok) {
           const storedTrip = await storeTripResponse.json();
           console.log("Trip stored successfully:", storedTrip);
-          setResultData(parsedData); // Update the state with the trip data
+
+          // redirect to the dynamic route /view-trip/[tripid]
+          router.push(`/view-trip/${storedTrip._id}`);
+          // setResultData(parsedData); // Update the state with the trip data
         } else {
           console.error("Failed to store trip");
         }
-        setResultData(parsedData);
+        // setResultData(parsedData);
       } catch (error) {
         console.log("Error generating response or storing trip ", error);
       }
@@ -130,10 +133,7 @@ function InputForm() {
   };
 
   return (
-    <div className="">
-      {resultData ? (
-        <TripResult data={resultData} />
-      ) : (
+    <div className="">   
         <form
           onSubmit={handleFormSubmit}
           className="flex flex-col gap-10 px-4 py-8"
@@ -247,7 +247,6 @@ function InputForm() {
             </Button>
           </div>
         </form>
-      )}
     </div>
   );
 }

@@ -56,7 +56,7 @@ const ChatSchema = new mongoose.Schema({
   hotelOptions: [HotelSchema],
   itinerary: [ItineraryDaySchema],
   authenticDishes: [DishSchema],
-  totalCost: CostSchema,
+  estimatedCost: CostSchema,
   createdAt: {
     type: Date,
     default: Date.now(),

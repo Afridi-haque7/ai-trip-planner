@@ -3,7 +3,7 @@
 import { useSession, signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-
+import Link from "next/link";
 
 function Dashboard() {
   const { data: session, status } = useSession();
@@ -59,6 +59,8 @@ function Dashboard() {
     }
   }, [session]);
 
+  console.log(chats);
+  
   // Optionally, render a loading state while the session is being determined
   if (status === "loading") {
     return <div className="mt-32 text-xl font-semibold">Loading...</div>;
@@ -92,7 +94,12 @@ function Dashboard() {
           <div>
             <p className="text-xl mb-2">Your Trips: </p>
             {chats && chats.length > 0 ? (
-              chats.map((item, index) => <div key={index}>Chat1</div>)
+              chats.map((item, index) => (
+                <div key={index}>
+                  <div>
+                    <Link href={`/view-trip/${item}`} >Chat {index}</Link>
+                  </div>
+                </div>))
             ) : (
               <p>No Chats found</p>
             )}

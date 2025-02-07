@@ -18,27 +18,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import { Button } from "@/components/ui/button";
 import { MapPinned, Star } from "lucide-react";
+
+
 
 function TripResult({ data }) {
 
   const {
+    locationImg = {},
     tripDetails = {},
     hotelOptions = [],
-    itinerary = {},
+    itinerary = [],
     authenticDishes = [],
     estimatedCost = {},
   } = data || {};
 
-  // console.log(hotelOptions);
 
   return (
     <div className="flex flex-col gap-8 mx-auto">
-      <div className="text-2xl mt-8 md:text-4xl font-bold text-center">
-        Trip Results with AI
-      </div>
+      
       {/* trip details */}
       <div>
         {/* <h2 className="text-md font-semibold">Details of you Trip:</h2> */}
