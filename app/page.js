@@ -1,9 +1,23 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import dbConnect from "@/lib/dbConnect";
+import { Loader2Icon } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import crypto from "crypto";
 
 export default function Home() {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+  // handle button click
+  const handleGetStarted = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    // generate an unique trip id
+    const tripId = crypto.randomBytes(16).toString("hex");
+    // route user to create trip with specific trip id
+    router.push(`/create-trip/${tripId}`);
+  };
+
   return (
     <div className="w-full flex justify-center itemms-center py-4 px-4 lg:px-2">
       <div
@@ -23,14 +37,26 @@ export default function Home() {
             itineraries tailored as per your preferences
           </p>
           <div className="flex justify-center items-center mt-10 flex-wrap">
-            <Link href="/create-trip">
+            {isLoading ? (
+              <Button size="lg" disabled>
+                <Loader2Icon className="animate-spin" />
+                Please wait
+              </Button>
+            ) : (
               <Button
                 variant="default"
-                className="text-lg font-semibold px-8 py-6 rounded-xl"
+                // className="text-lg font-semibold px-8 py-6 rounded-xl cursor-pointer"
+                size="lg"
+                onClick={handleGetStarted}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleGetStarted(e);
+                  }
+                }}
               >
                 Get Started
               </Button>
-            </Link>
+            )}
           </div>
         </div>
       </div>

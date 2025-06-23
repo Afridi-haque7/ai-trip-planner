@@ -10,6 +10,14 @@ const UserSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
+  password: {
+    type: String,
+    required: true,
+  },
+  googleId: {
+    type: String,
+    unique: true,
+  },
   history: [
     {
       type: mongoose.Schema.Types.ObjectId,

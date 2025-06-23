@@ -7,11 +7,9 @@ import { Button } from "../ui/button";
 import Autocomplete from "react-google-autocomplete";
 import { toast } from "sonner";
 import { chatSession } from "@/app/api/generate-trip/route";
-import TripResult from "./TripResult";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-
-
+import { Loader2Icon } from "lucide-react";
 
 function InputForm() {
   const [formData, setFormData] = useState({
@@ -20,11 +18,11 @@ function InputForm() {
     budget: null,
     members: null,
   });
-  // const [resultData, setResultData] = useState(null);
   const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
   const router = useRouter();
   const { data: session } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (session) {
@@ -46,7 +44,7 @@ function InputForm() {
             const user_id = user._id;
             setUserId(user_id);
 
-            router.push(`/create-trip/${user_id}`);
+            // router.push(`/create-trip/${user_id}`);
           } else {
             console.error("Failed to fetch user ID");
           }
@@ -59,11 +57,9 @@ function InputForm() {
     }
   }, [session, router]);
 
-  // console.log(userId);
-
   const handleFormSubmit = async (event) => {
     event.preventDefault();
-
+    setIsLoading(true);
     // if any form field is missing, show a dialog
     if (
       !formData?.location ||
@@ -115,7 +111,7 @@ function InputForm() {
         if (storeTripResponse.ok) {
           const storedTrip = await storeTripResponse.json();
           console.log("Trip stored successfully:", storedTrip);
-
+          setIsLoading(false)
           // redirect to the dynamic route /view-trip/[tripid]
           router.push(`/view-trip/${storedTrip._id}`);
           // setResultData(parsedData); // Update the state with the trip data
@@ -128,65 +124,62 @@ function InputForm() {
       }
     } else {
       return signIn("google", { callbackUrl: window.location.href });
-      
     }
   };
 
   return (
-    <div className="">   
-        <form
-          onSubmit={handleFormSubmit}
-          className="flex flex-col gap-10 px-4 py-8"
-        >
-          {/* Location Input */}
-          <div className="flex flex-col gap-2 py-2">
-            <label htmlFor="" className="font-medium">
-              Which place you want to plan the trip?
-            </label>
-            <Autocomplete
-              apiKey={key}
-              onPlaceSelected={(v) => {
-                setFormData({
-                  ...formData,
-                  location: v.formatted_address,
-                });
-              }}
-              className="border border-zinc-500/40 bg-transparent rounded-md px-4 py-2 shadow-md text-base"
-            />
-          </div>
-          {/* Days input */}
-          <div className="flex flex-col gap-2 py-2">
-            <label htmlFor="" className="font-medium">
-              How many days you want to plan the trip?
-            </label>
-            <Input
-              type="number"
-              placeholder="ex.2"
-              max={3}
-              min={1}
-              className="border border-zinc-500/40 shadow-md"
-              onChange={(e) => {
-                setFormData({
-                  ...formData,
-                  duration: e.target.value,
-                });
-              }}
-            />
-          </div>
+    <div className="">
+      <form
+        onSubmit={handleFormSubmit}
+        className="flex flex-col gap-10 px-4 py-8"
+      >
+        {/* Location Input */}
+        <div className="flex flex-col gap-2 py-2">
+          <label htmlFor="" className="font-medium">
+            Which place you want to plan the trip?
+          </label>
+          <Autocomplete
+            apiKey={key}
+            onPlaceSelected={(v) => {
+              setFormData({
+                ...formData,
+                location: v.formatted_address,
+              });
+            }}
+            className="border border-zinc-500/40 bg-transparent rounded-md px-4 py-2 shadow-md text-base"
+          />
+        </div>
+        {/* Days input */}
+        <div className="flex flex-col gap-2 py-2">
+          <label htmlFor="" className="font-medium">
+            How many days you want to plan the trip?
+          </label>
+          <Input
+            type="number"
+            placeholder="ex.2"
+            max={3}
+            min={1}
+            className="border border-zinc-500/40 shadow-md"
+            onChange={(e) => {
+              setFormData({
+                ...formData,
+                duration: e.target.value,
+              });
+            }}
+          />
+        </div>
 
-          {/* budget input */}
-          <div className="flex flex-col gap-2 py-2">
-            <label htmlFor="" className="font-medium">
-              What is your budget for the trip?
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {BudgetOptions.map((item, index) => (
-                <div
-                  key={index}
-                  onClick={() =>
-                    setFormData({ ...formData, budget: item.value })
-                  }
-                  className={`border border-zinc-500/40 rounded-lg shadow-lg flex justify-evenly items-center
+        {/* budget input */}
+        <div className="flex flex-col gap-2 py-2">
+          <label htmlFor="" className="font-medium">
+            What is your budget for the trip?
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {BudgetOptions.map((item, index) => (
+              <div
+                key={index}
+                onClick={() => setFormData({ ...formData, budget: item.value })}
+                className={`border border-zinc-500/40 rounded-lg shadow-lg flex justify-evenly items-center
                 px-4 py-4 text-center transition-all duration-200 cursor-pointer
                 ${
                   formData.budget === item.value
@@ -194,30 +187,30 @@ function InputForm() {
                     : "hover:bg-slate-200"
                 }
                 `}
-                >
-                  <img src={item.icon} alt="" className="w-12 h-12" />
-                  <span>
-                    <h2 className="text-md font-medium">{item.title}</h2>
-                    <p className="text-sm text-gray-500">{item.description}</p>
-                  </span>
-                </div>
-              ))}
-            </div>
+              >
+                <img src={item.icon} alt="" className="w-12 h-12" />
+                <span>
+                  <h2 className="text-md font-medium">{item.title}</h2>
+                  <p className="text-sm text-gray-500">{item.description}</p>
+                </span>
+              </div>
+            ))}
           </div>
+        </div>
 
-          {/* members input */}
-          <div className="flex flex-col gap-2 py-2">
-            <label htmlFor="" className="font-medium">
-              What is your budget for the trip?
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {MemberOptions.map((item, index) => (
-                <div
-                  key={index}
-                  onClick={() =>
-                    setFormData({ ...formData, members: item.value })
-                  }
-                  className={`border border-zinc-500/40 rounded-lg shadow-lg flex gap-4
+        {/* members input */}
+        <div className="flex flex-col gap-2 py-2">
+          <label htmlFor="" className="font-medium">
+            What is your budget for the trip?
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {MemberOptions.map((item, index) => (
+              <div
+                key={index}
+                onClick={() =>
+                  setFormData({ ...formData, members: item.value })
+                }
+                className={`border border-zinc-500/40 rounded-lg shadow-lg flex gap-4
                 px-4 py-4 text-center transition-all duration-200 cursor-pointer
                 ${
                   formData.members === item.value
@@ -225,28 +218,36 @@ function InputForm() {
                     : "hover:bg-slate-200"
                 }
                 `}
-                >
-                  <img src={item.icon} alt="" className="w-14" />
-                  <span>
-                    <h2 className="text-md font-medium">{item.title}</h2>
-                    <p className="text-xs text-gray-500">{item.description}</p>
-                    <p className="text-sm text-gray-500">{item.people}</p>
-                  </span>
-                </div>
-              ))}
-            </div>
+              >
+                <img src={item.icon} alt="" className="w-14" />
+                <span>
+                  <h2 className="text-md font-medium">{item.title}</h2>
+                  <p className="text-xs text-gray-500">{item.description}</p>
+                  <p className="text-sm text-gray-500">{item.people}</p>
+                </span>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div className="flex justify-center w-full">
+        <div className="flex justify-center w-full">
+          {isLoading ? (
+            <Button size="lg" disabled>
+              <Loader2Icon className="animate-spin" />
+              Please wait
+            </Button>
+          ) : (
             <Button
               // onClick={handleClick}
               type="submit"
-              className="w-full md:w-[200px]"
+              size="lg"
+              // className="w-full md:w-[200px]"
             >
               Generate Trip
             </Button>
-          </div>
-        </form>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

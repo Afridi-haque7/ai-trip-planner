@@ -34,7 +34,7 @@ function Dashboard() {
             body: JSON.stringify({ email }),
           });
 
-          console.log(response);
+          // console.log(response);
 
           if (response.ok) {
             const user = await response.json();
@@ -59,7 +59,7 @@ function Dashboard() {
     }
   }, [session]);
 
-  console.log(chats);
+  // console.log(chats);
   
   // Optionally, render a loading state while the session is being determined
   if (status === "loading") {

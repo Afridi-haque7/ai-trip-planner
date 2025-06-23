@@ -11,7 +11,20 @@ function Navbar() {
     if (session) {
       const name = session?.user?.name;
       const email = session?.user?.email;
+      const googleId = session?.user?.googleId;
 
+      console.log("Session data:", { name, email, googleId }); // Debug log
+
+      try {
+        // Only set values that exist
+        if (name) localStorage.setItem("name", name);
+        if (email) localStorage.setItem("email", email);
+        if (googleId) localStorage.setItem("googleId", googleId);
+
+        console.log("User data saved to localStorage");
+      } catch (error) {
+        console.error("Error saving user data to localStorage:", error.message);
+      }
       // API route
       const saveUser = async () => {
         const response = await fetch("/api/sign-up", {
@@ -68,7 +81,9 @@ function Navbar() {
           {session ? (
             <div className="flex gap-2 md:gap-4 justify-center items-center">
               <Link href="/dashboard">
-                <p className="text-xl font-semibold">{session?.user?.name.split(" ")[0]}</p>
+                <p className="text-xl font-semibold">
+                  {session?.user?.name.split(" ")[0]}
+                </p>
               </Link>
               <Button
                 variant="default"
