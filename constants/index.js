@@ -57,3 +57,40 @@ export const MemberOptions = [
   },
 ];
 
+export const testimonials = [
+  {
+    name: "Priya S.",
+    description:
+      "Planning my Goa trip was so easy with this site. It suggested the best hotels, local food spots, and even gave me a cost estimate. I didn’t have to spend hours researching!",
+    image:
+      "https://images.unsplash.com/photo-1610276198568-eb6d0ff53e48?q=80&w=200&auto=format",
+  },
+  {
+    name: "Rahul K.",
+    description:
+      "I loved how personalized the itinerary was. The site understood my budget and recommended just the right mix of sightseeing and relaxation.",
+    image:
+      "https://images.unsplash.com/photo-1729157661483-ed21901ed892?q=80&w=200&auto=format&fit=crop",
+  },
+  {
+    name: "Anita R.",
+    description:
+      "Instead of browsing countless blogs, I got a complete trip plan in minutes. From cuisines to must-visit places, everything was neatly organized.",
+    image:
+      "https://images.unsplash.com/photo-1614204424926-196a80bf0be8?q=80&w=200&auto=format&fit=crop",
+  },
+  {
+    name: "Aditya M.",
+    description:
+      "This platform saved me so much time. It suggested hidden gems in Kerala along with authentic local dishes I would have otherwise missed.",
+    image:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
+  },
+  {
+    name: "Neha & Arjun",
+    description:
+      "Our honeymoon plan came out perfect! The site mapped out daily activities, hotel options, and even dining spots, all within our budget.",
+    image:
+      "https://images.unsplash.com/photo-1720105761832-927de5f2ecce?q=80&w=200&auto=format&fit=crop",
+  },
+];

@@ -16,8 +16,8 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <AuthProvider>
-        <body className={inter.className}>
-          <div className="relative min-h-screen">
+        <body className={inter.className} style={{ margin: 0, padding: 0, width: "100%", background: "#0a0a0a" }}>
+          <div className="relative min-h-screen w-full bg-[#0a0a0a] m-0 p-0">
             <Navbar />
             <main>{children}</main>
             <Toaster closeButton />
