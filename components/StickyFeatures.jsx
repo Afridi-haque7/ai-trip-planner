@@ -17,7 +17,7 @@ import { MorphingText } from "@/components/magicui/morphing-text";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards.jsx";
 import { testimonials } from "@/constants";
 import Image from "next/image";
-
+import { HeroHighlight, Highlight } from "./ui/hero-highlight";
 // const StickyFeatures = dynamic(() => import("@/components/StickyFeatures.jsx"));
 const TypewriterEffectSmoothDemo = () => {
   const words = [
@@ -78,41 +78,41 @@ const TypewriterEffectSmoothDemo = () => {
   );
 };
 
-const Highlight = ({ children, className }) => {
-  return (
-    <motion.span
-      initial={{
-        backgroundSize: "0% 100%",
-      }}
-      animate={{
-        backgroundSize: "100% 100%",
-      }}
-      transition={{
-        duration: 2,
-        ease: "linear",
-        delay: 0.5,
-      }}
-      style={{
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "left center",
-        display: "inline",
-      }}
-      className={cn(
-        `relative inline-block rounded-lg bg-gradient-to-r from-indigo-700 to-purple-700 px-1 pb-1 dark:from-indigo-500 dark:to-purple-500`,
-        className
-      )}
-    >
-      {children}
-    </motion.span>
-  );
-};
+// const Highlight = ({ children, className }) => {
+//   return (
+//     <motion.span
+//       initial={{
+//         backgroundSize: "0% 100%",
+//       }}
+//       animate={{
+//         backgroundSize: "100% 100%",
+//       }}
+//       transition={{
+//         duration: 2,
+//         ease: "linear",
+//         delay: 0.5,
+//       }}
+//       style={{
+//         backgroundRepeat: "no-repeat",
+//         backgroundPosition: "left center",
+//         display: "inline",
+//       }}
+//       className={cn(
+//         `relative inline-block rounded-lg bg-gradient-to-r from-indigo-700 to-purple-700 px-1 pb-1 dark:from-indigo-500 dark:to-purple-500`,
+//         className
+//       )}
+//     >
+//       {children}
+//     </motion.span>
+//   );
+// };
 
 const StickyFeatures = () => {
   return (
     <ReactLenis root>
       <main className="bg-black rounded-lg max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto w-full ">
         <div className="wrapper">
-          <section className="text-white h-screen w-full bg-[#0a0a0a] pl-8 grid place-content-center sticky top-0 overflow-x-hidden">
+          <section className="text-white h-screen w-full bg-[#0a0a0a] grid place-content-center sticky top-0 overflow-x-hidden">
             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
             <TypewriterEffectSmoothDemo />
           </section>
@@ -127,13 +127,32 @@ const StickyFeatures = () => {
 
           <section className="text-white h-screen w-full bg-[#0a0a0a] grid  place-content-center sticky top-0 rounded-tr-2xl rounded-tl-2xl">
             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-            <h1 className="xl:text-6xl md:text-4xl text-3xl px-8 font-semibold text-center tracking-tight leading-[120%]">
-              Answer a few questions and let <br />
-              <br />
-              <Highlight className={`text-white p-1`}>
-                AI create a trip tailored just for you
-              </Highlight>
-            </h1>
+            <HeroHighlight>
+              <motion.h1
+                initial={{
+                  opacity: 0,
+                  y: 20,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: [20, -5, 0],
+                }}
+                transition={{
+                  duration: 0.5,
+                  ease: [0.4, 0.0, 0.2, 1],
+                }}
+                className="text-2xl px-4 sm:flex sm:flex-col gap-1 md:text-4xl lg:text-5xl font-bold text-white max-w-4xl leading-relaxed lg:leading-snug text-center mx-auto "
+              >
+                {/* <h1 className="xl:text-6xl md:text-4xl text-3xl px-8 font-semibold text-center tracking-tight leading-[120%]"> */}
+                <span>Answer a few questions and let </span>
+                <span>
+                  <Highlight className={`text-white p-1`}>
+                    AI create a trip tailored just for you
+                  </Highlight>
+                </span>
+                {/* </h1> */}
+              </motion.h1>
+            </HeroHighlight>
           </section>
         </div>
         {/* Our offerings */}
@@ -206,7 +225,6 @@ const StickyFeatures = () => {
             />
           </div>
         </section>
-        
       </main>
     </ReactLenis>
   );

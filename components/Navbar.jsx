@@ -4,6 +4,39 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { LiquidGlassCard } from "@/components/liquid-glass";
+import { Avatar,AvatarImage, AvatarFallback } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const ProfileAvatar = () => {
+
+  const handleLogout = () => {
+    signOut({ callbackUrl: "http://localhost:3000" });
+  }
+  return (
+    <div>
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Avatar>
+            <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+            <AvatarFallback>CN</AvatarFallback>
+          </Avatar>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem><Link href={`/dashboard`}>Profile</Link></DropdownMenuItem>
+          <DropdownMenuItem>Report Issue</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout} >Sign Out</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
 
 function Navbar() {
   const { data: session } = useSession();
@@ -14,7 +47,7 @@ function Navbar() {
       const email = session?.user?.email;
       const googleId = session?.user?.googleId;
 
-      console.log("Session data:", { name, email, googleId }); // Debug log
+      // console.log("Session data:", { name, email, googleId }); // Debug log
 
       try {
         // Only set values that exist
@@ -22,7 +55,7 @@ function Navbar() {
         if (email) localStorage.setItem("email", email);
         if (googleId) localStorage.setItem("googleId", googleId);
 
-        console.log("User data saved to localStorage");
+        // console.log("User data saved to localStorage");
       } catch (error) {
         console.error("Error saving user data to localStorage:", error.message);
       }
@@ -38,7 +71,7 @@ function Navbar() {
 
         if (response.ok) {
           const user = await response.json();
-          console.log("User saved or retrieved:", user);
+          // console.log("User saved or retrieved:", user);
         } else {
           console.error("Failed to save user");
         }
@@ -46,17 +79,10 @@ function Navbar() {
 
       saveUser();
     }
-  }, []);
+  }, [session]);
 
   return (
     <>
-      <LiquidGlassCard
-        glowIntensity="xl"
-        shadowIntensity="xl"
-        borderRadius="12px"
-        blurIntensity="xl"
-        draggable
-      >
         <nav
           className="w-full fixed top-0 left-0 flex backdrop-blur-md z-50 justify-between px-4 py-4 "
         >
@@ -87,7 +113,7 @@ function Navbar() {
           <div>
             {session ? (
               <div className="flex gap-2 md:gap-4 justify-center items-center">
-                <Link href="/dashboard">
+                {/* <Link href="/dashboard">
                   <p className="text-xl font-semibold">
                     {session?.user?.name.split(" ")[0]}
                   </p>
@@ -99,7 +125,8 @@ function Navbar() {
                   }
                 >
                   Sign Out
-                </Button>
+                </Button> */}
+                <ProfileAvatar />
               </div>
             ) : (
               <Button
@@ -115,7 +142,6 @@ function Navbar() {
             )}
           </div>
         </nav>
-      </LiquidGlassCard>
     </>
   );
 }

@@ -1,17 +1,14 @@
 "use client";
 import dynamic from "next/dynamic";
 const ThreeDMarquee = dynamic(() => import("@/components/ui/3d-marquee"));
+const TextGenerateEffect = dynamic(() => import("@/components/ui/text-generate-effect"));
 
 // Title component
 const TitleComponent = () => {
+  const words = "Plan Your Next Adventure With The Help of AI";
   return (
-    <div className="w-full flex flex-col items-center gap-2 md:gap-8 -mt-32">
-      <h1 className="pointer-events-none whitespace-pre-wrap bg-gradient-to-b  from-gray-100 to-black bg-clip-text text-center text-3xl md:text-5xl lg:text-6xl font-semibold leading-none text-transparent dark:from-white dark:to-slate-900/10">
-        PLAN YOUR NEXT ADVENTURE
-      </h1>
-      <h1 className="pointer-events-none whitespace-pre-wrap bg-gradient-to-b  from-gray-100 to-black bg-clip-text text-center text-3xl md:text-5xl lg:text-6xl font-semibold leading-none text-transparent dark:from-white dark:to-slate-900/10">
-        WITH THE HELP OF AI
-      </h1>
+    <div className="w-full flex flex-col items-center gap-2 md:gap-8 -mt-24 mb-12">
+      <TextGenerateEffect words={words} className={`text-white `} />
     </div>
   );
 };
@@ -76,3 +73,5 @@ export default function HeroSection() {
     </>
   );
 }
+
+// pointer-events-none whitespace-pre-wrap bg-gradient-to-b  bg-clip-text font-semibold leading-none text-transparent from-white to-slate-900/10
