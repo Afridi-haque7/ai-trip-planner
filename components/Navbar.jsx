@@ -14,8 +14,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const ProfileAvatar = () => {
+const ProfileAvatar = ({ }) => {
+  const name = localStorage.getItem("name");
+  const image = localStorage.getItem("profileImage");
 
+  const initials = name?.split(" ").map(n => n[0]).join("").toUpperCase();
+  
   const handleLogout = () => {
     signOut({ callbackUrl: "http://localhost:3000" });
   }
@@ -23,19 +27,25 @@ const ProfileAvatar = () => {
     <div>
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Avatar>
-            <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+          <Avatar className={`ring-2 ring-offset-0 ring-neutral-200/20`}>
+            <AvatarImage
+              src={image}
+              alt="@shadcn"
+              className={`ring-1 ring-offset-1 ring-blue-700/20`}
+            />
             <AvatarFallback>CN</AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem><Link href={`/dashboard`}>Profile</Link></DropdownMenuItem>
+          <DropdownMenuItem>
+            <Link href={`/dashboard`}>Profile</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem>Report Issue</DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLogout} >Sign Out</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Sign Out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
-  )
+  );
 }
 
 function Navbar() {
@@ -43,10 +53,12 @@ function Navbar() {
 
   useEffect(() => {
     if (session) {
+      console.log({ session });
+      
       const name = session?.user?.name;
       const email = session?.user?.email;
       const googleId = session?.user?.googleId;
-
+      const profileImage = session?.user?.image;
       // console.log("Session data:", { name, email, googleId }); // Debug log
 
       try {
@@ -54,6 +66,7 @@ function Navbar() {
         if (name) localStorage.setItem("name", name);
         if (email) localStorage.setItem("email", email);
         if (googleId) localStorage.setItem("googleId", googleId);
+        if (profileImage) localStorage.setItem("profileImage", profileImage);
 
         // console.log("User data saved to localStorage");
       } catch (error) {

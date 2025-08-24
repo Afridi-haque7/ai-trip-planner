@@ -8,46 +8,46 @@ import User from "@/models/User";
 
 export const authOptions = {
   providers: [
-    CredentialsProvider({
-      id: "credentials",
-      name: "Credentials",
-      credentials: {
-        email: {
-          label: "email",
-          type: "email",
-          placeholder: "user@example.com",
-        },
-        password: {
-          label: "password",
-          type: "password",
-        },
-      },
-      async authorize(credentials, req) {
-        await dbConnect();
-        try {
-          const user = await User.findOne({
-            email: credentials.email,
-          });
+    // CredentialsProvider({
+    //   id: "credentials",
+    //   name: "Credentials",
+    //   credentials: {
+    //     email: {
+    //       label: "email",
+    //       type: "email",
+    //       placeholder: "user@example.com",
+    //     },
+    //     password: {
+    //       label: "password",
+    //       type: "password",
+    //     },
+    //   },
+    //   async authorize(credentials, req) {
+    //     await dbConnect();
+    //     try {
+    //       const user = await User.findOne({
+    //         email: credentials.email,
+    //       });
 
-          if (!user) {
-            throw new Error("No user found");
-          }
+    //       if (!user) {
+    //         throw new Error("No user found");
+    //       }
 
-          // check password
-          const isPasswordMatched = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
-          if (isPasswordMatched) {
-            return user;
-          } else {
-            throw new Error("Incorrect Password");
-          }
-        } catch (error) {
-          throw new Error(error);
-        }
-      },
-    }),
+    //       // check password
+    //       const isPasswordMatched = await bcrypt.compare(
+    //         credentials.password,
+    //         user.password
+    //       );
+    //       if (isPasswordMatched) {
+    //         return user;
+    //       } else {
+    //         throw new Error("Incorrect Password");
+    //       }
+    //     } catch (error) {
+    //       throw new Error(error);
+    //     }
+    //   },
+    // }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,

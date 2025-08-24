@@ -12,7 +12,9 @@ export async function POST(request) {
       return new Response(JSON.stringify({ 
         name: user.name,
         email: user.email,
-        history: user.history
+        history: user.history,
+        subscriptionPlan: user.subscriptionPlan || "Free",
+        subscriptionEndDate: user.subscriptionEndDate || null,
        }), {
         status: 200,
         headers: { "Content-Type": "application/json" },

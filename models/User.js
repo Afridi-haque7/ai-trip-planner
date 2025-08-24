@@ -1,5 +1,11 @@
 import mongoose from "mongoose";
 
+const Plans = Object.freeze({
+  FREE: "free",
+  BASIC: "basic",
+  PREMIUM: "premium",
+});
+
 const UserSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -10,13 +16,25 @@ const UserSchema = new mongoose.Schema({
     required: true,
     unique: true,
   },
-  password: {
-    type: String,
-    required: true,
-  },
+  // password: {
+  //   type: String,
+  //   // required: true,
+  // },
   googleId: {
     type: String,
     unique: true,
+  },
+  profileImage: {
+    type: String,
+  },
+  subscriptionPlan: {
+    type: String,
+    enum: Object.values(Plans),
+    default: Plans.FREE,
+  },
+  subscriptionEndDate: {
+    type: Date,
+    default: null,
   },
   history: [
     {
@@ -24,6 +42,8 @@ const UserSchema = new mongoose.Schema({
       ref: "Chats", // Reference the Chats model
     },
   ],
+}, {
+  timestamps: true,
 });
 
 const User = mongoose.models.User || mongoose.model("User", UserSchema);
