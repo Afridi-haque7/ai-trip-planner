@@ -53,13 +53,11 @@ function Navbar() {
 
   useEffect(() => {
     if (session) {
-      console.log({ session });
       
       const name = session?.user?.name;
       const email = session?.user?.email;
       const googleId = session?.user?.googleId;
       const profileImage = session?.user?.image;
-      // console.log("Session data:", { name, email, googleId }); // Debug log
 
       try {
         // Only set values that exist

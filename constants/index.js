@@ -1,3 +1,12 @@
+import {
+  IconBrandGithub,
+  IconBrandX,
+  IconExchange,
+  IconHome,
+  IconNewSection,
+  IconTerminal2,
+} from "@tabler/icons-react";
+import { redirectIfUnauthenticated } from "@/app/helper";
 export const BudgetOptions = [
   {
     index: 1,
@@ -92,5 +101,134 @@ export const testimonials = [
       "Our honeymoon plan came out perfect! The site mapped out daily activities, hotel options, and even dining spots, all within our budget.",
     image:
       "https://images.unsplash.com/photo-1720105761832-927de5f2ecce?q=80&w=200&auto=format&fit=crop",
+  },
+];
+export const links = [
+  {
+    title: "Home",
+    icon: (
+      <IconHome className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+    ),
+    href: "/",
+  },
+  {
+    title: "Generate Trip",
+    icon: (
+      <IconNewSection className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+    ),
+    href: "/create-trip",
+  },
+  {
+    title: "Dashboard",
+    icon: (
+      <img
+        src="https://assets.aceternity.com/logo-dark.png"
+        width={20}
+        height={20}
+        alt="Aceternity Logo"
+      />
+    ),
+    href: "/dashboard",
+  },
+  {
+    title: "Pricing",
+    icon: (
+      <IconExchange className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+    ),
+    href: "/pricing",
+  },
+
+  {
+    title: "Twitter",
+    icon: (
+      <IconBrandX className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+    ),
+    href: "/",
+  },
+  {
+    title: "Instagram",
+    icon: (
+      <IconBrandGithub className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+    ),
+    href: "/",
+  },
+];
+export const images = [
+  "https://images.unsplash.com/photo-1642039673605-6c86ad03c4ed?q=80&w=735&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1579549322334-324325a6540b?q=80&w=735&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1542144612-1b3641ec3459?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1650747858910-5d48a4116296?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1593078875274-446ed98bae67?q=80&w=686&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1674108887401-a696b3e9c3a7?q=80&w=736&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1535117399959-7df1714b4202?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1509219411165-3ec3195b4842?q=80&w=682&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1525856331869-3d345509b9fb?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1593078875338-32c0283b0fee?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1750961093359-6bc630b9e9b5?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1738666428524-7e61a877f8d0?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1691055657038-cac5a5930821?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1642039673605-6c86ad03c4ed?q=80&w=735&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1579549322334-324325a6540b?q=80&w=735&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1542144612-1b3641ec3459?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1650747858910-5d48a4116296?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1593078875274-446ed98bae67?q=80&w=686&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1674108887401-a696b3e9c3a7?q=80&w=736&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1535117399959-7df1714b4202?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1509219411165-3ec3195b4842?q=80&w=682&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1525856331869-3d345509b9fb?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1593078875338-32c0283b0fee?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1750961093359-6bc630b9e9b5?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1738666428524-7e61a877f8d0?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1691055657038-cac5a5930821?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1642039673605-6c86ad03c4ed?q=80&w=735&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1579549322334-324325a6540b?q=80&w=735&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1542144612-1b3641ec3459?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1650747858910-5d48a4116296?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1593078875274-446ed98bae67?q=80&w=686&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1674108887401-a696b3e9c3a7?q=80&w=736&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1535117399959-7df1714b4202?q=80&w=687&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1509219411165-3ec3195b4842?q=80&w=682&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1525856331869-3d345509b9fb?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1593078875338-32c0283b0fee?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1750961093359-6bc630b9e9b5?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1738666428524-7e61a877f8d0?w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1691055657038-cac5a5930821?w=600&auto=format&fit=crop",
+];
+export const pricingPlans = [
+  {
+    title: "Free",
+    subtitle: "Good for trying out the platform and basic usage.",
+    price: "$0",
+    features: [
+      "Basic configuration",
+      "No setup, or hidden fees",
+      "2 trips per month",
+      "No premium support",
+      "No free updates",
+    ],
+  },
+  {
+    title: "Starter",
+    subtitle: "Best option for personal use and try the platform.",
+    price: "$11",
+    features: [
+      "Individual configuration",
+      "No setup, or hidden fees",
+      "10 trips per month",
+      "Premium support: 6 months",
+      "Free updates: 6 months",
+    ],
+  },
+  {
+    title: "Pro",
+    subtitle: "Perfect for teams and organizations.",
+    price: "$29",
+    features: [
+      "Advanced configuration",
+      "No setup, or hidden fees",
+      "30 trips per month",
+      "Premium support: 1 year",
+      "Free updates: 1 year",
+    ],
   },
 ];

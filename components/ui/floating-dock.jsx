@@ -15,8 +15,10 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-
+import { redirectIfUnauthenticated } from "@/app/helper";
 import { useRef, useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export const FloatingDock = ({ items, desktopClassName, mobileClassName }) => {
   return (
@@ -78,6 +80,8 @@ const FloatingDockMobile = ({ items, className }) => {
 
 const FloatingDockDesktop = ({ items, className }) => {
   let mouseX = useMotionValue(Infinity);
+  const { data: session } = useSession();
+  const router = useRouter();
   return (
     <motion.div
       onMouseMove={(e) => mouseX.set(e.pageX)}
@@ -88,13 +92,24 @@ const FloatingDockDesktop = ({ items, className }) => {
       )}
     >
       {items.map((item) => (
-        <IconContainer mouseX={mouseX} key={item.title} {...item} />
+        <IconContainer
+          mouseX={mouseX}
+          key={item.title}
+          title={item.title}
+          icon={item.icon}
+          href={item.href}
+          onClick={
+            item.title === "Generate Trip"
+              ? () => redirectIfUnauthenticated(session, router)
+              : () => router.push(item.href)
+          }
+        />
       ))}
     </motion.div>
   );
 };
 
-function IconContainer({ mouseX, title, icon, href }) {
+function IconContainer({ mouseX, title, icon, href, onClick }) {
   let ref = useRef(null);
 
   let distance = useTransform(mouseX, (val) => {
@@ -138,12 +153,13 @@ function IconContainer({ mouseX, title, icon, href }) {
   const [hovered, setHovered] = useState(false);
 
   return (
-    <a href={href}>
+    // <a href={href}>
       <motion.div
         ref={ref}
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onClick={onClick}
         className="relative flex aspect-square items-center justify-center rounded-lg bg-neutral-800"
       >
         <AnimatePresence>
@@ -165,6 +181,6 @@ function IconContainer({ mouseX, title, icon, href }) {
           {icon}
         </motion.div>
       </motion.div>
-    </a>
+    // </a>
   );
 }

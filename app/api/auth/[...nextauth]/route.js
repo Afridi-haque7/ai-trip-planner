@@ -67,7 +67,7 @@ const handler = NextAuth({
     signIn: "/signin", // Custom sign-in page
     signUp: "/signup", // Custom sign-up page
   },
-  debug: process.env.NODE_ENV === "development", // Enable debug in development
+  // debug: process.env.NODE_ENV === "development", // Enable debug in development
 });
 
 export {handler as GET, handler as POST}

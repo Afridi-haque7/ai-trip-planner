@@ -93,7 +93,7 @@ function InputForm() {
 
         // send Data to database
         const data = result?.response?.text();
-
+        console.log("Trip data:", data);
         const parsedData = JSON.parse(data);
 
         // Store the response in database collection

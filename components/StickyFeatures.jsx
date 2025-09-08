@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { ReactLenis } from "lenis/react";
 import dynamic from "next/dynamic";
 import { ArrowRight } from "lucide-react";
+import { useSession } from "next-auth/react";
 const TypewriterEffectSmooth = dynamic(() =>
   import("@/components/ui/typewriter-effect.jsx")
 );
@@ -12,13 +13,12 @@ const HoverBorderGradient = dynamic(() =>
   import("@/components/ui/hover-border-gradient.jsx")
 );
 import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
 import { MorphingText } from "@/components/magicui/morphing-text";
 import { InfiniteMovingCards } from "@/components/ui/infinite-moving-cards.jsx";
 import { testimonials } from "@/constants";
 import Image from "next/image";
 import { HeroHighlight, Highlight } from "./ui/hero-highlight";
-// const StickyFeatures = dynamic(() => import("@/components/StickyFeatures.jsx"));
+import { redirectIfUnauthenticated } from "@/app/helper";
 const TypewriterEffectSmoothDemo = () => {
   const words = [
     {
@@ -47,15 +47,16 @@ const TypewriterEffectSmoothDemo = () => {
   ];
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const { data: session } = useSession();
   // handle button click
-  const handleGetStarted = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // generate an unique trip id
-    const tripId = crypto.randomBytes(16).toString("hex");
-    // route user to create trip with specific trip id
-    router.push(`/create-trip/${tripId}`);
-  };
+  // const handleGetStarted = (e) => {
+  //   e.preventDefault();
+  //   setIsLoading(true);
+  //   // generate an unique trip id
+  //   const tripId = crypto.randomBytes(16).toString("hex");
+  //   // route user to create trip with specific trip id
+  //   router.push(`/create-trip/${tripId}`);
+  // };
   return (
     <div className="flex flex-col items-center justify-center w-full">
       <p className="text-neutral-200 dark:text-neutral-200 text-sm sm:text-base  ">
@@ -67,7 +68,7 @@ const TypewriterEffectSmoothDemo = () => {
           containerClassName="rounded-full"
           as="button"
           className="bg-black text-white flex items-center space-x-2"
-          onClick={handleGetStarted}
+          onClick={() => redirectIfUnauthenticated(session, router)}
           disabled={isLoading}
         >
           <span>Get Started</span>
@@ -77,35 +78,6 @@ const TypewriterEffectSmoothDemo = () => {
     </div>
   );
 };
-
-// const Highlight = ({ children, className }) => {
-//   return (
-//     <motion.span
-//       initial={{
-//         backgroundSize: "0% 100%",
-//       }}
-//       animate={{
-//         backgroundSize: "100% 100%",
-//       }}
-//       transition={{
-//         duration: 2,
-//         ease: "linear",
-//         delay: 0.5,
-//       }}
-//       style={{
-//         backgroundRepeat: "no-repeat",
-//         backgroundPosition: "left center",
-//         display: "inline",
-//       }}
-//       className={cn(
-//         `relative inline-block rounded-lg bg-gradient-to-r from-indigo-700 to-purple-700 px-1 pb-1 dark:from-indigo-500 dark:to-purple-500`,
-//         className
-//       )}
-//     >
-//       {children}
-//     </motion.span>
-//   );
-// };
 
 const StickyFeatures = () => {
   return (
