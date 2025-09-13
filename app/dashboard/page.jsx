@@ -47,7 +47,7 @@ function Dashboard() {
   const [id, setId] = useState(null);
   const [chats, setChats] = useState([]);
   const router = useRouter();
-  const image = localStorage.getItem("profileImage");
+  const image = (typeof window !== "undefined") ? localStorage?.getItem("profileImage") : "";
   // Redirect to /restricted if user is unauthenticated
   useEffect(() => {
     if (status === "unauthenticated") {

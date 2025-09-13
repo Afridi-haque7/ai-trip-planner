@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ProfileAvatar = ({ }) => {
-  const name = localStorage.getItem("name");
-  const image = localStorage.getItem("profileImage");
+  const name = localStorage?.getItem("name") || "John Doe";
+  const image = localStorage?.getItem("profileImage") || "";
 
   const initials = name?.split(" ").map(n => n[0]).join("").toUpperCase();
   
@@ -61,10 +61,10 @@ function Navbar() {
 
       try {
         // Only set values that exist
-        if (name) localStorage.setItem("name", name);
-        if (email) localStorage.setItem("email", email);
-        if (googleId) localStorage.setItem("googleId", googleId);
-        if (profileImage) localStorage.setItem("profileImage", profileImage);
+        if (name) localStorage?.setItem("name", name);
+        if (email) localStorage?.setItem("email", email);
+        if (googleId) localStorage?.setItem("googleId", googleId);
+        if (profileImage) localStorage?.setItem("profileImage", profileImage);
 
         // console.log("User data saved to localStorage");
       } catch (error) {
