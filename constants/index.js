@@ -5,8 +5,10 @@ import {
   IconHome,
   IconNewSection,
   IconTerminal2,
+  IconBrandInstagram,
 } from "@tabler/icons-react";
-import { redirectIfUnauthenticated } from "@/app/helper";
+import { House, LayoutDashboard, DollarSign, Instagram } from "lucide-react";
+// import { redirectIfUnauthenticated } from "@/app/helper";
 export const BudgetOptions = [
   {
     index: 1,
@@ -106,9 +108,7 @@ export const testimonials = [
 export const links = [
   {
     title: "Home",
-    icon: (
-      <IconHome className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-    ),
+    icon: <House className="h-full w-full text-neutral-300" />,
     href: "/",
   },
   {
@@ -120,20 +120,13 @@ export const links = [
   },
   {
     title: "Dashboard",
-    icon: (
-      <img
-        src="https://assets.aceternity.com/logo-dark.png"
-        width={20}
-        height={20}
-        alt="Aceternity Logo"
-      />
-    ),
+    icon: <LayoutDashboard className="w-full h-full" />,
     href: "/dashboard",
   },
   {
     title: "Pricing",
     icon: (
-      <IconExchange className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+      <DollarSign className="h-full w-full text-neutral-500 dark:text-neutral-300" />
     ),
     href: "/pricing",
   },
@@ -148,7 +141,7 @@ export const links = [
   {
     title: "Instagram",
     icon: (
-      <IconBrandGithub className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+      <IconBrandInstagram className="h-full w-full text-neutral-500 dark:text-neutral-300" />
     ),
     href: "/",
   },

@@ -32,12 +32,17 @@ export const FloatingDock = ({ items, desktopClassName, mobileClassName }) => {
 const FloatingDockMobile = ({ items, className }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className={cn("relative block md:hidden", className)}>
+    <div
+      className={cn(
+        "relative block md:hidden rounded-full backdrop-blur-md",
+        className
+      )}
+    >
       <AnimatePresence>
         {open && (
           <motion.div
             layoutId="nav"
-            className="absolute inset-x-0 bottom-full mb-2 flex flex-col gap-2 bg-transparent backdrop-blur-sm rounded-sm"
+            className="absolute inset-x-0 bottom-full mb-2 flex flex-col gap-2 bg-transparent backdrop-blur-md rounded-sm text-white border-white"
           >
             {items.map((item, idx) => (
               <motion.div
@@ -70,7 +75,7 @@ const FloatingDockMobile = ({ items, className }) => {
       </AnimatePresence>
       <button
         onClick={() => setOpen(!open)}
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-800"
+        className="flex h-10 w-10 p-2 bg-gray-900 items-center justify-center rounded-full text-white"
       >
         <IconLayoutNavbarCollapse className="h-5 w-5 text-neutral-400" />
       </button>
@@ -160,7 +165,7 @@ function IconContainer({ mouseX, title, icon, href, onClick }) {
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={onClick}
-        className="relative flex aspect-square items-center justify-center rounded-lg bg-neutral-800"
+        className="relative flex aspect-square items-center justify-center rounded-lg bg-neutral-800 text-white"
       >
         <AnimatePresence>
           {hovered && (

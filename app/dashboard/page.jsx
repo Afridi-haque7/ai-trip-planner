@@ -8,8 +8,6 @@ import Stats from "@/components/Stats";
 import { Timer, Plane, Podcast } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardTitle,
@@ -156,6 +154,7 @@ function Dashboard() {
                       <div className="w-full flex justify-center">
                         <Image
                           src={image}
+                          alt="Profile Picture"
                           className="w-24 h-24 rounded-full"
                           width={20}
                           height={20}
@@ -207,6 +206,7 @@ function Dashboard() {
                             <div>
                               <Image
                                 src={images[4]}
+                                alt="Trip Image"
                                 width={16}
                                 height={16}
                                 className="w-24 h-24 rounded-sm mb-2"

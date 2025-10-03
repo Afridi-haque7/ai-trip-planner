@@ -48,15 +48,7 @@ const TypewriterEffectSmoothDemo = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
-  // handle button click
-  // const handleGetStarted = (e) => {
-  //   e.preventDefault();
-  //   setIsLoading(true);
-  //   // generate an unique trip id
-  //   const tripId = crypto.randomBytes(16).toString("hex");
-  //   // route user to create trip with specific trip id
-  //   router.push(`/create-trip/${tripId}`);
-  // };
+
   return (
     <div className="flex flex-col items-center justify-center w-full">
       <p className="text-neutral-200 dark:text-neutral-200 text-sm sm:text-base  ">
@@ -147,7 +139,7 @@ const StickyFeatures = () => {
               <figure className="grid place-content-center -skew-x-12 xs:max-w-12 ">
                 <Image
                   src="https://images.unsplash.com/photo-1545073334-9cb53498f1dc?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                  alt=""
+                  alt="trip image"
                   className="transition-all duration-300 xs:scale-50 md:scale-100 xs:w-10 xs:h-20 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover"
                   width={160}
                   height={50}
@@ -156,7 +148,7 @@ const StickyFeatures = () => {
               <figure className="grid place-content-center skew-x-12 xs:max-w-12">
                 <Image
                   src="https://images.unsplash.com/photo-1603011900469-ed3539c7199c"
-                  alt=""
+                  alt="trip image"
                   width={160}
                   height={30}
                   className="transition-all duration-300 xs:w-30 xs:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover "
@@ -165,7 +157,7 @@ const StickyFeatures = () => {
               <figure className="grid place-content-center -skew-x-12">
                 <Image
                   src="https://images.unsplash.com/photo-1542144612-1b3641ec3459"
-                  alt=""
+                  alt="trip image"
                   width={160}
                   height={30}
                   className="transition-all duration-300 xs:w-30 xs:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover "
@@ -174,7 +166,7 @@ const StickyFeatures = () => {
               <figure className="grid place-content-center skew-x-12">
                 <Image
                   src="https://images.unsplash.com/photo-1685904042960-66242a0ac352?w=500&auto=format&fit=crop"
-                  alt=""
+                  alt="trip image"
                   width={160}
                   height={30}
                   className="transition-all duration-300 xs:w-30 xs:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover "
