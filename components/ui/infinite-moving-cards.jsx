@@ -78,7 +78,7 @@ export const InfiniteMovingCards = ({
       >
         {items.map((item, idx) => (
           <li
-            className="relative  max-w-[400px] shrink-0 rounded-2xl border border-b-0 p-2 lg:px-8 lg:py-6 border-zinc-700 bg-[linear-gradient(180deg,#27272a,#18181b)]"
+            className="relative  max-w-[400px] shrink-0 rounded-2xl border border-b-0 p-2 lg:px-8 lg:py-6 border-border bg-card"
             key={item.name}
           >
             <div className="flex flex-col items-center justify-center">
@@ -88,10 +88,10 @@ export const InfiniteMovingCards = ({
               ></div>
               <blockquote className="relative text-center max-w-lg mx-auto">
                 <div className="relative z-10">
-                  <p className="text-md text-gray-50">
+                  <p className="text-md text-foreground">
                     <em className="relative flex gap-2">
                       <svg
-                        className="absolute -top-0 -start-0 sm:-top-8 sm:-start-8 size-16 text-gray-100/10 h-8 w-8 sm:h-24 sm:w-24"
+                        className="absolute -top-0 -start-0 sm:-top-8 sm:-start-8 size-16 text-muted-foreground h-8 w-8 sm:h-24 sm:w-24"
                         width="12"
                         height="12"
                         viewBox="0 0 16 16"
@@ -104,7 +104,7 @@ export const InfiniteMovingCards = ({
                           fill="currentColor"
                         ></path>
                       </svg>
-                      <span className="relative z-20 text-sm sm:text-sm md:text-md lg:text-lg leading-[1.6] font-normal text-gray-100 text-center">
+                      <span className="relative z-20 text-sm sm:text-sm md:text-md lg:text-lg leading-[1.6] font-normal text-foreground text-center">
                         {item.description}
                       </span>
                     </em>
@@ -113,7 +113,7 @@ export const InfiniteMovingCards = ({
               </blockquote>
               <div className="relative z-20 mt-6 ">
                 <span className="flex flex-col-reverse items-center gap-1">
-                  <span className="text-sm leading-[1.6] font-normal text-gray-200">
+                  <span className="text-sm leading-[1.6] font-normal text-muted-foreground">
                     {item.name}
                   </span>
                   <Avatar>

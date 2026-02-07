@@ -21,13 +21,13 @@ const MagicCard = dynamic(() => import("@/components/magicui/magic-card.jsx"));
 function Footer() {
   return (
     <>
-      <p className="text-white xl:text-6xl md:text-5xl sm:text-4xl text-3xl font-semibold text-center mb-12 flex flex-col lg:flex-row justify-center">
+      <p className="text-foreground xl:text-6xl md:text-5xl sm:text-4xl text-3xl font-semibold text-center mb-12 flex flex-col lg:flex-row justify-center">
         <span>Have Questions?</span>{" "}
-        <span className="text-blue-600"> Let Us Know</span>{" "}
+        <span className="text-primary"> Let Us Know</span>{" "}
       </p>
       <div className="flex w-full md:flex-row flex-col items-center justify-around gap-4">
         <div className="flex w-full basis-12 md:basis-1/2 justify-center p-4">
-          <Card className="max-w-md w-full shadow-none border-none text-white p-0">
+          <Card className="max-w-md w-full shadow-none border-none text-foreground p-0">
             <MagicCard gradientColor={"#262626"} className="p-8 border-none">
               <CardHeader className=" p-4 ">
                 <CardTitle className="flex flex-col gap-1 items-center ">
@@ -43,7 +43,7 @@ function Footer() {
                         id="email"
                         type="email"
                         placeholder="name@example.com"
-                        className={`border-gray-100/10`}
+                        className={`border-border`}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -52,13 +52,13 @@ function Footer() {
                         id="name"
                         type="text"
                         placeholder="Enter your name"
-                        className={`border-gray-100/10`}
+                        className={`border-border`}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="message">Your Message</Label>
                       <Textarea
-                        className={`border-gray-100/10`}
+                        className={`border-border`}
                         placeholder="Enter your message"
                       />
                     </div>
@@ -77,12 +77,12 @@ function Footer() {
       </div>
       <div className="flex items-center justify-center p-4 mt-12">
         <div>
-          <p className="text-gray-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             © 2025 Trip Tailor. All Rights Reserved.
           </p>
         </div>
         {/* <div className="flex basis-1/2 justify-center" >
-          <p className="text-gray-400 text-sm">Follow us on: </p>
+          <p className="text-muted-foreground text-sm">Follow us on: </p>
         </div> */}
       </div>
     </>

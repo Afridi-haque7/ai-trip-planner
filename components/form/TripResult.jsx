@@ -61,7 +61,7 @@ function TripResult({ data }) {
         {hotelOptions && hotelOptions.length > 0 ? (
           hotelOptions.map((item, index) => (
             <div key={index} className="flex flex-row p-1 gap-4 ">
-              <Card className="border max-w-[300px] min-h-[475px] overflow-hidden p-0 border-gray-500/10 shadow-md">
+              <Card className="border max-w-[300px] min-h-[475px] overflow-hidden p-0 border-border shadow-md">
                 <CardHeader>
                   <img
                     src={item.imageUrl}
@@ -75,10 +75,10 @@ function TripResult({ data }) {
                     {item.address}
                   </CardDescription>
                   <div className="flex gap-2">
-                    <span className="px-2 py-1 text-center text-s border bg-gray-500/10 rounded-full">
+                    <span className="px-2 py-1 text-center text-s border bg-secondary/10 rounded-full">
                       {item.price.slice(14)}
                     </span>
-                    <span className="px-2 text-center py-1 text-xs border bg-gray-500/10 rounded-full flex">
+                    <span className="px-2 text-center py-1 text-xs border bg-secondary/10 rounded-full flex">
                       <span>
                         <Star className="scale-20 text-xs" />
                       </span>{" "}
@@ -151,7 +151,7 @@ function TripResult({ data }) {
               key={index}
               className="mx-auto flex gap-4 flex-wrap justify-center"
             >
-              <Card className="border-2 overflow-hidden w-[300px] min-h-[350px] border-gray-500/10 shadow-md">
+              <Card className="border-2 overflow-hidden w-[300px] min-h-[350px] border-border shadow-md">
                 <CardHeader>
                   <img
                     src={item.imageUrl}

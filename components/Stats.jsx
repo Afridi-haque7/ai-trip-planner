@@ -52,7 +52,7 @@ const Stats = ({ data, query, className, iconClassName }) => {
     <>
       <Card
         className={cn(
-          "w-full h-20 bg-gray-200 text-black flex gap-1 items-center justify-between rounded-sm border-0 border-l-8 border-red-500",
+          "w-full h-20 bg-card text-foreground flex gap-1 items-center justify-between rounded-sm border-0 border-l-8 border-destructive",
           className
         )}
       >

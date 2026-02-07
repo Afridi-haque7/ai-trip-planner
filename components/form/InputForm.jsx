@@ -241,7 +241,7 @@ function InputForm() {
                 <img src={item.icon} alt="" className="w-12 h-12" />
                 <span>
                   <h2 className="text-md font-medium">{item.title}</h2>
-                  <p className="text-sm text-gray-500">{item.description}</p>
+                  <p className="text-sm text-muted-foreground">{item.description}</p>
                 </span>
               </div>
             ))}
@@ -272,8 +272,8 @@ function InputForm() {
                 <img src={item.icon} alt="" className="w-14" />
                 <span>
                   <h2 className="text-md font-medium">{item.title}</h2>
-                  <p className="text-xs text-gray-500">{item.description}</p>
-                  <p className="text-sm text-gray-500">{item.people}</p>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
+                  <p className="text-sm text-muted-foreground">{item.people}</p>
                 </span>
               </div>
             ))}

@@ -30,9 +30,7 @@ const handler = NextAuth({
           {
             $setOnInsert: {
               googleId: account.providerAccountId,
-              name,
               email,
-              profileImage: image,
               subscriptionPlan: "free",
               subscriptionEndDate: null,
               history: [],

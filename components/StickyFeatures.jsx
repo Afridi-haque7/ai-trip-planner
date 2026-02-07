@@ -26,11 +26,11 @@ const TypewriterEffectSmoothDemo = () => {
     },
     {
       text: "Trip",
-      className: "text-blue-500",
+      className: "text-primary",
     },
     {
       text: "Tailor,",
-      className: "text-blue-500",
+      className: "text-primary",
     },
     {
       text: "your",
@@ -51,7 +51,7 @@ const TypewriterEffectSmoothDemo = () => {
 
   return (
     <div className="flex flex-col items-center justify-center w-full">
-      <p className="text-neutral-200 dark:text-neutral-200 text-sm sm:text-base  ">
+      <p className="text-muted-foreground text-sm sm:text-base  ">
         The wait is over!
       </p>
       <TypewriterEffectSmooth words={words} />
@@ -59,7 +59,7 @@ const TypewriterEffectSmoothDemo = () => {
         <HoverBorderGradient
           containerClassName="rounded-full"
           as="button"
-          className="bg-black text-white flex items-center space-x-2"
+          className="bg-primary text-primary-foreground flex items-center space-x-2"
           onClick={() => redirectIfUnauthenticated(session, router)}
           disabled={isLoading}
         >
@@ -74,14 +74,14 @@ const TypewriterEffectSmoothDemo = () => {
 const StickyFeatures = () => {
   return (
     <ReactLenis root>
-      <main className="bg-black rounded-lg max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto w-full ">
+      <main className="bg-background rounded-lg max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-6xl mx-auto w-full ">
         <div className="wrapper">
-          <section className="text-white h-screen w-full bg-[#0a0a0a] grid place-content-center sticky top-0 overflow-x-hidden">
+          <section className="text-foreground h-screen w-full bg-background grid place-content-center sticky top-0 overflow-x-hidden">
             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
             <TypewriterEffectSmoothDemo />
           </section>
 
-          <section className="bg-gray-300 text-black  grid place-content-center h-screen sticky top-0 rounded-tr-2xl rounded-tl-2xl overflow-hidden">
+          <section className="bg-card text-foreground  grid place-content-center h-screen sticky top-0 rounded-tr-2xl rounded-tl-2xl overflow-hidden">
             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
             <h1 className="xl:text-6xl md:text-4xl text-3xl px-8 font-semibold text-center tracking-tight leading-[120%]">
               Confused about planning your next trip? 🤔 <br />
@@ -89,7 +89,7 @@ const StickyFeatures = () => {
             </h1>
           </section>
 
-          <section className="text-white h-screen w-full bg-[#0a0a0a] grid  place-content-center sticky top-0 rounded-tr-2xl rounded-tl-2xl">
+          <section className="text-foreground h-screen w-full bg-background grid  place-content-center sticky top-0 rounded-tr-2xl rounded-tl-2xl">
             <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
             <HeroHighlight>
               <motion.h1
@@ -105,12 +105,12 @@ const StickyFeatures = () => {
                   duration: 0.5,
                   ease: [0.4, 0.0, 0.2, 1],
                 }}
-                className="text-2xl px-4 sm:flex sm:flex-col gap-1 md:text-4xl lg:text-5xl font-bold text-white max-w-4xl leading-relaxed lg:leading-snug text-center mx-auto "
+                className="text-2xl px-4 sm:flex sm:flex-col gap-1 md:text-4xl lg:text-5xl font-bold text-foreground max-w-4xl leading-relaxed lg:leading-snug text-center mx-auto "
               >
                 {/* <h1 className="xl:text-6xl md:text-4xl text-3xl px-8 font-semibold text-center tracking-tight leading-[120%]"> */}
                 <span>Answer a few questions and let </span>
                 <span>
-                  <Highlight className={`text-white p-1`}>
+                  <Highlight className={`text-foreground p-1`}>
                     AI create a trip tailored just for you
                   </Highlight>
                 </span>
@@ -120,7 +120,7 @@ const StickyFeatures = () => {
           </section>
         </div>
         {/* Our offerings */}
-        <section className="text-white w-full bg-[#0a0a0a] grid justify-aroound rounded-tr-2xl rounded-tl-2xl">
+        <section className="text-foreground w-full bg-background grid justify-aroound rounded-tr-2xl rounded-tl-2xl">
           <div className="flex w-full justify-around">
             <div className=" sticky top-0 h-screen flex items-center justify-start">
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl xl:px-8 font-semibold text-left tracking-tight leading-[120%]">
@@ -177,7 +177,7 @@ const StickyFeatures = () => {
         </section>
 
         {/* Testimonials */}
-        <section className="text-white w-full bg-[#0a0a0a] grid place-content-center sticky top-0 h-screen gap-32 justify-center items-center">
+        <section className="text-foreground w-full bg-background grid place-content-center sticky top-0 h-screen gap-32 justify-center items-center">
           <h1 className="xl:text-6xl md:text-4xl text-3xl px-8 font-semibold text-center tracking-tight leading-[120%]">
             Testimonials of Our Clients
           </h1>

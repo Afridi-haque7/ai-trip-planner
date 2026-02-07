@@ -14,7 +14,22 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <AuthProvider>
         <body
           className={inter.className}
@@ -22,10 +37,9 @@ export default function RootLayout({ children }) {
             margin: 0,
             padding: 0,
             width: "100%",
-            background: "#0a0a0a",
           }}
         >
-          <div className="relative min-h-screen w-full bg-[#0a0a0a] m-0 p-0">
+          <div className="relative min-h-screen w-full bg-background dark:bg-[#0a0a0a] m-0 p-0">
             <Navbar />
             <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2">
               <FloatingDock

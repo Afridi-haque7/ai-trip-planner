@@ -9,13 +9,13 @@ const TitleComponent = () => {
   const words = "Plan Your Next Adventure With The Help of AI";
   return (
     <div className="w-full flex flex-col items-center gap-2 md:gap-8 -mt-24 mb-12">
-      <TextGenerateEffect words={words} className={`text-white `} />
+      <TextGenerateEffect words={words} className={`text-foreground `} />
     </div>
   );
 };
 const ThreeDMarqueeDemoSecond = () => {
   return (
-    <div className="max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-4xl xl:max-w-6xl scale-75 lg:scale-100 flex justify-center rounded-3xl bg-gray-950/5 ring-neutral-700/10 dark:bg-neutral-800 overflow-hidden">
+    <div className="max-w-md sm:max-w-xl md:max-w-4xl lg:max-w-4xl xl:max-w-6xl scale-75 lg:scale-100 flex justify-center rounded-3xl bg-card ring-border overflow-hidden">
       <ThreeDMarquee images={images} />
     </div>
   );

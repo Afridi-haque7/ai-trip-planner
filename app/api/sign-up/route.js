@@ -30,10 +30,6 @@ export async function POST(request) {
             name,
             email,
             history: [],
-          },
-          $set: {
-            // Update name if it changed
-            name,
           }
         },
         {

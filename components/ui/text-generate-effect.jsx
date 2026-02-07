@@ -32,7 +32,7 @@ const TextGenerateEffect = ({
           return (
             <motion.span
               key={word + idx}
-              className="text-white text-center text-2xl sm:text-4xl md:text-5xl lg:text-6xl opacity-0 pointer-events-none whitespace-pre-wrap bg-gradient-to-b  bg-clip-text font-semibold leading-none text-transparent from-white to-slate-900/10"
+              className="text-foreground text-center text-2xl sm:text-4xl md:text-5xl lg:text-6xl opacity-0 pointer-events-none whitespace-pre-wrap bg-gradient-to-b  bg-clip-text font-semibold leading-none text-transparent from-foreground to-foreground/10"
               style={{
                 filter: filter ? "blur(10px)" : "none",
               }}
@@ -48,7 +48,7 @@ const TextGenerateEffect = ({
   return (
     <div className={cn("font-bold", className)}>
       <div className="mt-4">
-        <div className=" text-white leading-snug tracking-wide flex justify-center items-center text-center">
+        <div className=" text-foreground leading-snug tracking-wide flex justify-center items-center text-center">
           {renderWords()}
         </div>
       </div>
