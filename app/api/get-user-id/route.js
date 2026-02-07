@@ -1,13 +1,31 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-
+import { getToken } from "next-auth/jwt";
 
 export async function POST(request) {
-    const {email} = await request.json();
+    const token = await getToken({ req: request });
+
+    // Verify user is authenticated
+    if (!token || !token.userId || !token.sub) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const { email } = await request.json();
+
+    // Validate email format
+    if (!email || typeof email !== "string" || !email.includes("@")) {
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     try {
-        await dbConnect();  //connect to DB
-        const user = await User.findOne({email});
+        await dbConnect();
+        const user = await User.findOne({ email });
 
         if(user){
             return new Response(JSON.stringify({ _id: user._id }), {

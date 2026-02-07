@@ -7,8 +7,8 @@ import User from "@/models/User";
 const handler = NextAuth({
   providers: [
     GoogleProvider({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-      clientSecret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET,
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       authorization: {
         params: {
           prompt: "consent",
@@ -23,51 +23,76 @@ const handler = NextAuth({
       const { name, email, image } = user;
       try {
         await dbConnect();
-        const existingUser = await User.findOne({ email });
-
-        if (!existingUser) {
-          // User does not exist, create a new user
-          const newUser = new User({
-            googleId: account.providerAccountId,
-            name,
-            email,
-            profileImage: image,
-            subscriptionPlan: "free", // Default plan
-            subscriptionEndDate: null, // No end date for free plan
-            history: [], // Initialize history as an empty array
-          });
-
-          await newUser.save(); // Save the new user to the database
-          // console.log("New user created:", newUser);
-        } else {
-          // console.log("User already exists:", existingUser);
-        }
+        
+        // Use atomic findOneAndUpdate to prevent race conditions
+        await User.findOneAndUpdate(
+          { email },
+          {
+            $setOnInsert: {
+              googleId: account.providerAccountId,
+              name,
+              email,
+              profileImage: image,
+              subscriptionPlan: "free",
+              subscriptionEndDate: null,
+              history: [],
+            },
+            $set: {
+              // Update existing user with latest profile data
+              name,
+              profileImage: image,
+            }
+          },
+          { 
+            upsert: true, 
+            new: true,
+            runValidators: true
+          }
+        );
+        
+        return true;
       } catch (error) {
-        console.error("Error during signin callback", error);
-        return false;
+        console.error("Error during signin callback:", error);
+        // Don't crash auth - just log and continue
+        return true;
       }
-
-      return true;
     },
     async session({ session, token }) {
-      // Send properties to the client
-      if (session.user) {
-        session.user.id = token.sub;
+      // Send MongoDB user ID to the client (not Google ID)
+      if (session?.user) {
+        session.user.id = token.userId || token.sub;
       }
       return session;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
+    async jwt({ token, user, account, trigger, isNewUser }) {
+      // On first sign-in, fetch the MongoDB user by email and store their ID
+      if (isNewUser || trigger === "signIn") {
+        try {
+          await dbConnect();
+          const dbUser = await User.findOne({ email: token.email });
+          if (dbUser) {
+            // Store MongoDB user ID in token (not Google ID)
+            token.userId = dbUser._id.toString();
+          }
+        } catch (error) {
+          console.error("Error fetching user in JWT callback:", error);
+        }
       }
+      
+      // Preserve userId if it exists from a previous call
+      if (token.userId) {
+        token.sub = token.userId; // Override sub with MongoDB ID
+      }
+      
       return token;
     },
   },
-  pages: {
-    signIn: "/signin", // Custom sign-in page
-    signUp: "/signup", // Custom sign-up page
+  session: {
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  // debug: process.env.NODE_ENV === "development", // Enable debug in development
+  // Use default NextAuth pages instead of custom non-existent pages
+  secret: process.env.NEXTAUTH_SECRET,
 });
 
 export {handler as GET, handler as POST}

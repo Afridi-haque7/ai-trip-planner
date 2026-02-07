@@ -44,14 +44,22 @@ function Dashboard() {
   const [email, setEmail] = useState("");
   const [id, setId] = useState(null);
   const [chats, setChats] = useState([]);
+  const [image, setImage] = useState("");
   const router = useRouter();
-  const image = (typeof window !== "undefined") ? localStorage?.getItem("profileImage") : "";
+  
   // Redirect to /restricted if user is unauthenticated
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/restricted");
     }
   }, [status, router]);
+
+  // Load profile image from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setImage(localStorage?.getItem("profileImage") || "");
+    }
+  }, []);
 
   useEffect(() => {
     if (session) {
@@ -156,8 +164,8 @@ function Dashboard() {
                           src={image}
                           alt="Profile Picture"
                           className="w-24 h-24 rounded-full"
-                          width={20}
-                          height={20}
+                          width={96}
+                          height={96}
                         />
                       </div>
                       <div className="grid gap-2">

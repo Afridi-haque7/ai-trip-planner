@@ -7,10 +7,10 @@ export async function middleware(request) {
   const token = await getToken({ req: request });
   const url = request.nextUrl;
 
-  if (token && 
+  if (token && (
     url.pathname.startsWith("/sign-in") ||
     url.pathname.startsWith("/sign-up")
-) {
+  )) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 //   return NextResponse.redirect(new URL("/", request.url));

@@ -18,13 +18,10 @@ export const checkAuthentication = (session, router) => {
 // Function to redurect unauthenticated users
 export const redirectIfUnauthenticated = async (session, router) => {
   const tripId = generateTripId();
-  const baseUrl = "http://localhost:3000";
-    // process.env.NODE_ENV === "development"
-    //   ? "http://localhost:3000"
-    //   : process.env.NEXTAUTH_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   if (!session) {
     await signIn("google", {
-      callbackUrl: `http://localhost:3000/create-trip/${tripId}`,
+      callbackUrl: `${baseUrl}/create-trip/${tripId}`,
     });
     return;
   }

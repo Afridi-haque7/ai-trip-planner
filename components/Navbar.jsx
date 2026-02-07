@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -15,13 +15,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const ProfileAvatar = ({ }) => {
-  const name = localStorage?.getItem("name") || "John Doe";
-  const image = localStorage?.getItem("profileImage") || "";
+  const [mounted, setMounted] = useState(false);
+  const [name, setName] = useState("John Doe");
+  const [image, setImage] = useState("");
+
+  useEffect(() => {
+    // Only access localStorage after component is mounted (client-side)
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      setName(localStorage?.getItem("name") || "John Doe");
+      setImage(localStorage?.getItem("profileImage") || "");
+    }
+  }, []);
 
   const initials = name?.split(" ").map(n => n[0]).join("").toUpperCase();
   
   const handleLogout = () => {
-    signOut({ callbackUrl: "http://localhost:3000" });
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    signOut({ callbackUrl: baseUrl });
   }
   return (
     <div>
@@ -142,11 +153,12 @@ function Navbar() {
             ) : (
               <Button
                 variant="default"
-                onClick={() =>
+                onClick={() => {
+                  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
                   signIn("google", {
-                    callbackUrl: "http://localhost:3000/create-trip",
-                  })
-                }
+                    callbackUrl: `${baseUrl}/create-trip`,
+                  });
+                }}
               >
                 Sign Up
               </Button>

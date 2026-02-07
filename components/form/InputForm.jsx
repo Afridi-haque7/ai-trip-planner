@@ -10,6 +10,7 @@ import { chatSession } from "@/app/api/generate-trip/route";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
+import { validateTripData } from "@/lib/tripValidation";
 
 function InputForm() {
   const [formData, setFormData] = useState({
@@ -87,14 +88,48 @@ function InputForm() {
         const result = await chatSession.sendMessage(prompt);
 
         if (!result) {
-          console.error("No result found");
+          toast("Failed to generate trip. Please try again.", {
+            action: {
+              label: "Close",
+              onClick: () => console.log("Close toast"),
+            },
+          });
+          setIsLoading(false);
           return;
         }
 
         // send Data to database
         const data = result?.response?.text();
         console.log("Trip data:", data);
-        const parsedData = JSON.parse(data);
+        
+        let parsedData;
+        try {
+          parsedData = JSON.parse(data);
+        } catch (parseError) {
+          console.error("Failed to parse Gemini response as JSON:", parseError);
+          toast("Invalid response format from AI. Please try again.", {
+            action: {
+              label: "Close",
+              onClick: () => console.log("Close toast"),
+            },
+          });
+          setIsLoading(false);
+          return;
+        }
+
+        // Validate the parsed data structure
+        const validation = validateTripData(parsedData);
+        if (!validation.valid) {
+          console.error("Trip data validation failed:", validation.message);
+          toast(`Trip generation failed: ${validation.errors[0]}. Please try again.`, {
+            action: {
+              label: "Close",
+              onClick: () => console.log("Close toast"),
+            },
+          });
+          setIsLoading(false);
+          return;
+        }
 
         // Store the response in database collection
         const storeTripResponse = await fetch("/api/store-trip", {
@@ -116,11 +151,26 @@ function InputForm() {
           router.push(`/view-trip/${storedTrip._id}`);
           // setResultData(parsedData); // Update the state with the trip data
         } else {
-          console.error("Failed to store trip");
+          const error = await storeTripResponse.json();
+          console.error("Failed to store trip:", error);
+          toast("Failed to save trip. Please try again.", {
+            action: {
+              label: "Close",
+              onClick: () => console.log("Close toast"),
+            },
+          });
+          setIsLoading(false);
         }
         // setResultData(parsedData);
       } catch (error) {
-        console.log("Error generating response or storing trip ", error);
+        console.error("Error generating response or storing trip:", error);
+        toast("An error occurred while generating your trip. Please try again.", {
+          action: {
+            label: "Close",
+            onClick: () => console.log("Close toast"),
+          },
+        });
+        setIsLoading(false);
       }
     } else {
       return signIn("google", { callbackUrl: window.location.href });
