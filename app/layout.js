@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 import AuthProvider from "@/context/AuthProvider";
+import { ReduxProvider } from "@/lib/redux/ReduxProvider";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { links } from "@/constants";
 const inter = Inter({ subsets: ["latin"] });
@@ -30,7 +31,8 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <AuthProvider>
+      <ReduxProvider>
+        <AuthProvider>
         <body
           className={inter.className}
           style={{
@@ -53,6 +55,7 @@ export default function RootLayout({ children }) {
           </div>
         </body>
       </AuthProvider>
+      </ReduxProvider>
     </html>
   );
 }
