@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useSession, signIn, signOut } from "next-auth/react";
@@ -12,19 +13,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import { setUserDetails, selectUserProfile } from "@/lib/redux/slices/userSlice";
+import { setChats } from "@/lib/redux/slices/chatsSlice";
 
 const ProfileAvatar = ({}) => {
   const [mounted, setMounted] = useState(false);
-  const [name, setName] = useState("John Doe");
-  const [image, setImage] = useState("");
+  const userProfile = useSelector(selectUserProfile);
+  const { name = "John Doe", profileImage = "" } = userProfile;
 
   useEffect(() => {
-    // Only access localStorage after component is mounted (client-side)
     setMounted(true);
-    if (typeof window !== "undefined") {
-      setName(localStorage?.getItem("name") || "John Doe");
-      setImage(localStorage?.getItem("profileImage") || "");
-    }
   }, []);
 
   const initials = name
@@ -43,7 +41,7 @@ const ProfileAvatar = ({}) => {
         <DropdownMenuTrigger>
           <Avatar className={`ring-2 ring-offset-0 ring-border`}>
             <AvatarImage
-              src={image}
+              src={profileImage}
               alt="@shadcn"
               className={`ring-1 ring-offset-1 ring-primary/20`}
             />
@@ -51,7 +49,7 @@ const ProfileAvatar = ({}) => {
           </Avatar>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <DropdownMenuItem>
+          <DropdownMenuItem asChild>
             <Link href={`/dashboard`}>Profile</Link>
           </DropdownMenuItem>
           <DropdownMenuItem>Report Issue</DropdownMenuItem>
@@ -64,6 +62,7 @@ const ProfileAvatar = ({}) => {
 
 function Navbar() {
   const { data: session } = useSession();
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (session) {
@@ -72,8 +71,17 @@ function Navbar() {
       const googleId = session?.user?.googleId;
       const profileImage = session?.user?.image;
 
+      // Store user details in Redux
+      dispatch(setUserDetails({
+        name: name || "",
+        email: email || "",
+        googleId: googleId || "",
+        profileImage: profileImage || "",
+        chats: [],
+      }));
+
       try {
-        // Only set values that exist
+        // Also keep localStorage for backward compatibility
         if (name) localStorage?.setItem("name", name);
         if (email) localStorage?.setItem("email", email);
         if (googleId) localStorage?.setItem("googleId", googleId);
@@ -85,25 +93,83 @@ function Navbar() {
       }
       // API route
       const saveUser = async () => {
-        const response = await fetch("/api/sign-up", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name, email }),
-        });
+        try {
+          const response = await fetch("/api/sign-up", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ name, email }),
+          });
 
-        if (response.ok) {
-          const user = await response.json();
-          // console.log("User saved or retrieved:", user);
-        } else {
-          console.error("Failed to save user");
+          if (response.ok) {
+            const user = await response.json();
+            // console.log("User saved or retrieved:", user);
+            
+            // Fetch full user details including chats
+            const getUserDetailsResponse = await fetch("/api/get-user-details", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email }),
+            });
+
+            if (getUserDetailsResponse.ok) {
+              const userDetails = await getUserDetailsResponse.json();
+              // Update Redux with full user details including chats
+              dispatch(setUserDetails({
+                name: userDetails.name || "",
+                email: userDetails.email || "",
+                googleId: userDetails._id || "",
+                profileImage: profileImage || "",
+                chats: userDetails.history || [],
+              }));
+              
+              // Fetch trip details using trip IDs from history
+              if (userDetails.history && userDetails.history.length > 0) {
+                try {
+                  // Fetch all trip details for user's chats
+                  const allTrips = await Promise.all(
+                    userDetails.history.map((tripId) =>
+                      fetch("/api/get-trip", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ tripid: tripId }),
+                      })
+                        .then((res) => res.json())
+                        .catch((err) => {
+                          console.error(`Failed to fetch trip ${tripId}:`, err);
+                          return null;
+                        })
+                    )
+                  );
+
+                  // Filter out null values (failed requests) and update Redux
+                  const validTrips = allTrips.filter((trip) => trip !== null);
+                  dispatch(setChats(validTrips));
+                } catch (error) {
+                  console.error("Error fetching trip details:", error);
+                  dispatch(setChats([]));
+                }
+              } else {
+                // No trips, set empty chats array
+                dispatch(setChats([]));
+              }
+            }
+          } else {
+            console.error("Failed to save user");
+          }
+        } catch (error) {
+          console.error("Error in saveUser:", error);
         }
       };
 
       saveUser();
     }
-  }, [session]);
+  }, [session, dispatch]);
 
   return (
     <>

@@ -1,6 +1,9 @@
 "use client";
 
-import { useSession, signIn } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { useSelector } from 'react-redux';
+import { selectUserProfile } from '@/lib/redux/slices/userSlice';
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -40,70 +43,16 @@ const query = [
 
 function Dashboard() {
   const { data: session, status } = useSession();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [id, setId] = useState(null);
-  const [chats, setChats] = useState([]);
-  const [image, setImage] = useState("");
   const router = useRouter();
-  
+  const userProfile = useSelector(selectUserProfile);
+  const { name = "", email = "", googleId = "", profileImage = "", chats = [] } = userProfile;
+
   // Redirect to /restricted if user is unauthenticated
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/restricted");
     }
   }, [status, router]);
-
-  // Load profile image from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setImage(localStorage?.getItem("profileImage") || "");
-    }
-  }, []);
-
-  useEffect(() => {
-    if (session) {
-      const fetchUserId = async () => {
-        const email = session.user.email;
-
-        try {
-          const response = await fetch("/api/get-user-details", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email }),
-          });
-
-          // console.log(response);
-
-          if (response.ok) {
-            const user = await response.json();
-            const userId = user._id;
-            const username = user.name;
-            const userEmail = user.email;
-            const chatArr = user.history;
-
-            const capitalizedUsername = username
-              .split(" ")
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(" ");
-            setName(capitalizedUsername);
-            setEmail(userEmail);
-            setChats(chatArr);
-            setId(userId);
-            return response;
-          } else {
-            console.error("Failed to fetch user details");
-          }
-        } catch (error) {
-          console.error("Failed to fetch user details in Dashboard", error);
-        }
-      };
-
-      fetchUserId();
-    }
-  }, [session]);
 
   // Optionally, render a loading state while the session is being determined
   if (status === "loading") {
@@ -115,7 +64,7 @@ function Dashboard() {
         {/* Header */}
         <div>
           <h1 className="text-3xl md:text-4xl lg:text-6xl font-extrabold text-center">
-            <span className="text-white">Welcome Back, </span>
+            <span className="text-foreground">Welcome Back, </span>
             <span className="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-transparent bg-clip-text">
               {name}
             </span>
@@ -127,7 +76,7 @@ function Dashboard() {
             <Stats
               key={index}
               query={item}
-              data={id}
+              data={googleId}
               className={`h-28 ${
                 index == 0
                   ? "border-purple-500"
@@ -149,7 +98,7 @@ function Dashboard() {
         <div className="w-full flex flex-col md:flex-row gap-8 justify-evenly">
           {/* user details */}
           <div className="w-full max-w-md">
-            <Card className="w-full shadow-none border-none text-white p-0">
+            <Card className="w-full shadow-none border-none text-foreground p-0">
               <MagicCard gradientColor={"#262626"} className="p-8 border-none">
                 <CardHeader className=" p-4 ">
                   <CardTitle className="flex flex-col gap-1 items-center ">
@@ -161,7 +110,7 @@ function Dashboard() {
                     <div className="grid gap-4">
                       <div className="w-full flex justify-center">
                         <Image
-                          src={image}
+                          src={profileImage}
                           alt="Profile Picture"
                           className="w-24 h-24 rounded-full"
                           width={96}
@@ -174,7 +123,7 @@ function Dashboard() {
                           id="email"
                           type="email"
                           placeholder="name@example.com"
-                          className={`border-gray-100/10`}
+                          className={`border-border`}
                           value={email}
                           readOnly
                         />
@@ -185,7 +134,7 @@ function Dashboard() {
                           id="name"
                           type="text"
                           placeholder="Enter your name"
-                          className={`border-gray-100/10`}
+                          className={`border-border`}
                           value={name}
                           readOnly
                         />
@@ -198,7 +147,7 @@ function Dashboard() {
           </div>
           {/* Trip section */}
           <div className="w-full max-w-md">
-            <Card className="w-full shadow-none border-none text-white p-0">
+            <Card className="w-full shadow-none border-none text-foreground p-0\">
               <MagicCard gradientColor={"#262626"} className="p-8 border-none">
                 <CardHeader className=" p-4 ">
                   <CardTitle className="flex flex-col gap-1 items-center ">
@@ -210,10 +159,10 @@ function Dashboard() {
                     chats.map((item, index) => (
                       <Link href={`/view-trip/${item}`} key={index}>
                         <div>
-                          <div className="flex flex-col items-center p-2 rounded-sm bg-white/10 cursor-pointer">
+                          <div className="flex flex-col items-center p-2 rounded-sm bg-secondary/50 cursor-pointer">
                             <div>
                               <Image
-                                src={images[4]}
+                                src={images?.[0]}
                                 alt="Trip Image"
                                 width={16}
                                 height={16}
