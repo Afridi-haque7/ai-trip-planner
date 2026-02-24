@@ -39,7 +39,7 @@ const UserSchema = new mongoose.Schema({
   history: [
     {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Chats", // Reference the Chats model
+      ref: "Trip", // Reference the Trip model
     },
   ],
 }, {
