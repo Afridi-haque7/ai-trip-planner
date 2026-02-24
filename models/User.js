@@ -38,8 +38,7 @@ const UserSchema = new mongoose.Schema({
   },
   history: [
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Trip", // Reference the Trip model
+      type: String, // Store custom tripId strings
     },
   ],
 }, {

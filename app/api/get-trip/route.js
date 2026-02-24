@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import dbConnect from "@/lib/dbConnect";
-import Chats from "@/models/Trip";
+import Trip from "@/models/Trip";
 import { getToken } from "next-auth/jwt";
 
 export async function POST(req){
@@ -25,13 +25,12 @@ export async function POST(req){
       });
     }
 
-    console.log(tripid);
+    console.log("[Get Trip] Fetching trip:", tripid);
 
     await dbConnect();
 
     try {
-        const tripData = await Chats.findById(tripid);
-        console.log(tripData);
+        const tripData = await Trip.findOne({ tripId: tripid });
         
         if(tripData){
             // Verify the authenticated user owns this trip (use MongoDB ID)
@@ -43,15 +42,20 @@ export async function POST(req){
               });
             }
 
+            // Return complete TripContext with all nested data
             return new Response(JSON.stringify({
+                _id: tripData._id,
                 userId: tripData.userId,
-                locationImg: tripData.locationImg,
-                tripDetails: tripData.tripDetails,
-                hotelOptions: tripData.hotelOptions,
+                tripId: tripData.tripId,
+                input: tripData.input,
+                derived: tripData.derived,
+                weather: tripData.weather,
+                places: tripData.places,
                 itinerary: tripData.itinerary,
-                authenticDishes: tripData.authenticDishes,
-                estimatedCost: tripData.estimatedCost,
+                budget: tripData.budget,
+                metadata: tripData.metadata,
                 createdAt: tripData.createdAt,
+                updatedAt: tripData.updatedAt,
             }), {
               status: 200,
               headers: { "Content-Type": "application/json" },

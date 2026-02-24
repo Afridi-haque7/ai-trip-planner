@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Error from "@/components/Error";
-import TripResult from "@/components/form/TripResult";
+import TripResultADK from "@/components/form/TripResultADK";
 export const dynamic = "force-dynamic";
 
 
@@ -32,6 +32,7 @@ export default function ViewTrip() {
           if (response.ok) {
             const tripData = await response.json();
             setTrip(tripData);
+            console.log("[View Trip] Fetched trip data:", tripData);
             // return response;
           } else {
             console.error("Failed to fetch trip data");
@@ -64,15 +65,14 @@ export default function ViewTrip() {
               className="text-2xl md:text-3xl lg:text-5xl font-bold text-center 
           bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent"
             >
-              Trip Results with AI
+              Your AI-Planned Trip
             </h1>
             <p className="text-center mx-auto px-2 mt-10 text-md text-gray-500">
-              Just provide some basic information, and Trip Tailor will generate
-              a customized itenerary just for you.
+              Here's your personalized travel itinerary powered by advanced AI agents.
             </p>
           </div>
           <div className="my-16 mx-1 md:mx-4 p-2 md:p-4 border rounded-2xl bg-slate-200/30">
-            <TripResult data={trip} />
+            <TripResultADK data={trip} />
           </div>
         </main>
       </div>

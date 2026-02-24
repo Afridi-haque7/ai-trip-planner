@@ -6,24 +6,46 @@ import { BudgetOptions, MemberOptions } from "@/constants";
 import { Button } from "../ui/button";
 import Autocomplete from "react-google-autocomplete";
 import { toast } from "sonner";
-import { chatSession } from "@/app/api/generate-trip/route";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
-import { validateTripData } from "@/lib/tripValidation";
+import { useDispatch } from "react-redux";
+import { setTripContext, setLoadingTripGeneration, setTripError } from "@/lib/redux/slices/tripSlice";
+
+// Currency options
+const CURRENCY_OPTIONS = [
+  { code: "USD", label: "USD (US Dollar)" },
+  { code: "EUR", label: "EUR (Euro)" },
+  { code: "GBP", label: "GBP (British Pound)" },
+  { code: "INR", label: "INR (Indian Rupee)" },
+  { code: "JPY", label: "JPY (Japanese Yen)" },
+  { code: "AUD", label: "AUD (Australian Dollar)" },
+  { code: "CAD", label: "CAD (Canadian Dollar)" },
+  { code: "CHF", label: "CHF (Swiss Franc)" },
+];
+
+// Budget level mapping
+const BUDGET_MAPPING = {
+  "cheap": "low",
+  "medium": "medium",
+  "expensive": "luxury"
+};
 
 function InputForm() {
   const [formData, setFormData] = useState({
     location: null,
-    duration: null,
+    startDate: null,
+    endDate: null,
     budget: null,
     members: null,
+    currency: "USD",
   });
   const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
   const router = useRouter();
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (session) {
@@ -61,10 +83,13 @@ function InputForm() {
   const handleFormSubmit = async (event) => {
     event.preventDefault();
     setIsLoading(true);
-    // if any form field is missing, show a dialog
+    dispatch(setLoadingTripGeneration(true));
+
+    // Validate all fields
     if (
       !formData?.location ||
-      !formData?.duration ||
+      !formData?.startDate ||
+      !formData?.endDate ||
       !formData?.budget ||
       !formData?.members
     ) {
@@ -74,103 +99,106 @@ function InputForm() {
           onClick: () => console.log("Close toast"),
         },
       });
+      setIsLoading(false);
+      dispatch(setLoadingTripGeneration(false));
+      return;
+    }
+
+    // Validate date range
+    const startDate = new Date(formData.startDate);
+    const endDate = new Date(formData.endDate);
+    if (endDate <= startDate) {
+      toast("End date must be after start date!", {
+        action: { label: "Close", onClick: () => {} },
+      });
+      setIsLoading(false);
+      dispatch(setLoadingTripGeneration(false));
       return;
     }
 
     if (session) {
-      const prompt = `Act as a travel guide and generate a trip for the location: ${formData?.location}, for ${formData?.members} persons, in a ${formData?.budget} budget and for ${formData?.duration} days. Give a hotel list(max-3) with hotel name, address, price, hotel image url, geo-coordinates, rating, descriptions. Give a picture url of the place.
-    Also generate an itinerary for the most famous places of the location, with a list of different places with their pictures url, location details, timings, entry fee(if applicable). Suggest some famous authentic cuisines(max-3) of that place with picture urls. Generate estimated cost for the trip. Give all the image urls from google, don't use tripadvisor cdn. For itinerary response, give itinerary only for exact ${formData?.duration} days, don't generate unnecessary days.
-    Give the response in JSON format - locationImg: {url}, tripDetails: {location, duration, budget, travelers}, hotelOptions: [{name, address, price, imageUrl, geoCoordinates, rating, description}], itinerary: [{name, imgUrl, description, location, timings, entryFee}], authenticDishes: [{name, description, imageUrl}], estimatedCost: {hotel, food, transport, attractions, totalCost}`;
-
-      // send to gemini model
-
       try {
-        const result = await chatSession.sendMessage(prompt);
+        // Prepare the new ADK schema payload
+        const tripInput = {
+          destination: formData.location,
+          numberOfPeople: formData.members,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          budgetLevel: BUDGET_MAPPING[formData.budget],
+          currency: formData.currency,
+        };
 
-        if (!result) {
+        console.log("[InputForm] Sending trip request:", tripInput);
+
+        const apiResponse = await fetch("/api/generate-trip", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(tripInput),
+        });
+
+        if (!apiResponse.ok) {
+          const errorData = await apiResponse.json();
+          throw new Error(errorData.error || "Failed to generate trip");
+        }
+
+        const result = await apiResponse.json();
+
+        if (!result.success || !result.context) {
           toast("Failed to generate trip. Please try again.", {
-            action: {
-              label: "Close",
-              onClick: () => console.log("Close toast"),
-            },
+            action: { label: "Close", onClick: () => {} },
           });
           setIsLoading(false);
+          dispatch(setLoadingTripGeneration(false));
+          dispatch(setTripError("Failed to generate trip"));
           return;
         }
 
-        // send Data to database
-        const data = result?.response?.text();
-        console.log("Trip data:", data);
-        
-        let parsedData;
-        try {
-          parsedData = JSON.parse(data);
-        } catch (parseError) {
-          console.error("Failed to parse Gemini response as JSON:", parseError);
-          toast("Invalid response format from AI. Please try again.", {
-            action: {
-              label: "Close",
-              onClick: () => console.log("Close toast"),
-            },
-          });
-          setIsLoading(false);
-          return;
-        }
+        console.log("[InputForm] Trip context generated:", result.context);
 
-        // Validate the parsed data structure
-        const validation = validateTripData(parsedData);
-        if (!validation.valid) {
-          console.error("Trip data validation failed:", validation.message);
-          toast(`Trip generation failed: ${validation.errors[0]}. Please try again.`, {
-            action: {
-              label: "Close",
-              onClick: () => console.log("Close toast"),
-            },
-          });
-          setIsLoading(false);
-          return;
-        }
+        console.log("[InputForm] Trip generation succeeded, storing to database...");
+        console.log("[InputForm] Using userId:", userId);
 
-        // Store the response in database collection
-        const storeTripResponse = await fetch("/api/store-trip", {
+        // Store trip to database
+        console.log("[InputForm] Calling /api/store-trip with tripContext");
+        const storeResponse = await fetch("/api/store-trip", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
             userId,
-            tripData: parsedData, // Pass the parsed trip data
+            tripContext: result.context,
           }),
         });
 
-        if (storeTripResponse.ok) {
-          const storedTrip = await storeTripResponse.json();
-          console.log("Trip stored successfully:", storedTrip);
-          setIsLoading(false)
-          // redirect to the dynamic route /view-trip/[tripid]
-          router.push(`/view-trip/${storedTrip._id}`);
-          // setResultData(parsedData); // Update the state with the trip data
-        } else {
-          const error = await storeTripResponse.json();
-          console.error("Failed to store trip:", error);
-          toast("Failed to save trip. Please try again.", {
-            action: {
-              label: "Close",
-              onClick: () => console.log("Close toast"),
-            },
-          });
-          setIsLoading(false);
+        if (!storeResponse.ok) {
+          const error = await storeResponse.json();
+          throw new Error(error.error || "Failed to store trip");
         }
-        // setResultData(parsedData);
+
+        const storedTrip = await storeResponse.json();
+        console.log("[InputForm] Trip stored successfully:", {
+          tripId: storedTrip.tripId,
+          mongoId: storedTrip._id,
+          message: storedTrip.message,
+          timestamp: new Date().toISOString(),
+        });
+
+        setIsLoading(false);
+        dispatch(setLoadingTripGeneration(false));
+
+        // Redirect to view trip using custom tripId (not MongoDB _id)
+        router.push(`/view-trip/${storedTrip.tripId}`);
       } catch (error) {
-        console.error("Error generating response or storing trip:", error);
-        toast("An error occurred while generating your trip. Please try again.", {
-          action: {
-            label: "Close",
-            onClick: () => console.log("Close toast"),
-          },
+        console.error("[InputForm] Error:", error);
+        toast(`An error occurred: ${error.message}`, {
+          action: { label: "Close", onClick: () => {} },
         });
         setIsLoading(false);
+        dispatch(setLoadingTripGeneration(false));
+        dispatch(setTripError(error.message));
       }
     } else {
       return signIn("google", { callbackUrl: window.location.href });
@@ -178,15 +206,15 @@ function InputForm() {
   };
 
   return (
-    <div className="">
+    <div className="w-full">
       <form
         onSubmit={handleFormSubmit}
-        className="flex flex-col gap-10 px-4 py-8"
+        className="flex flex-col gap-8 px-2 sm:px-4 py-8"
       >
         {/* Location Input */}
-        <div className="flex flex-col gap-2 py-2">
-          <label htmlFor="" className="font-medium">
-            Which place you want to plan the trip?
+        <div className="flex flex-col gap-3 py-2">
+          <label htmlFor="location" className="font-semibold text-lg text-foreground">
+            Where are you planning to go?
           </label>
           <Autocomplete
             apiKey={key}
@@ -196,104 +224,142 @@ function InputForm() {
                 location: v.formatted_address,
               });
             }}
-            className="border border-zinc-500/40 bg-transparent rounded-md px-4 py-2 shadow-md text-base"
+            className="border border-border bg-transparent rounded-lg px-4 py-3 shadow-sm text-base placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            placeholder="Enter destination city or country"
           />
         </div>
-        {/* Days input */}
-        <div className="flex flex-col gap-2 py-2">
-          <label htmlFor="" className="font-medium">
-            How many days you want to plan the trip?
+        {/* Days input - REPLACED with Date Range */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-2">
+          <div className="flex flex-col gap-3">
+            <label htmlFor="startDate" className="font-semibold text-lg text-foreground">
+              When do you start?
+            </label>
+            <Input
+              id="startDate"
+              type="date"
+              className="border border-border shadow-sm rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  startDate: e.target.value,
+                });
+              }}
+              value={formData.startDate || ""}
+            />
+          </div>
+          <div className="flex flex-col gap-3">
+            <label htmlFor="endDate" className="font-semibold text-lg text-foreground">
+              When do you return?
+            </label>
+            <Input
+              id="endDate"
+              type="date"
+              className="border border-border shadow-sm rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  endDate: e.target.value,
+                });
+              }}
+              value={formData.endDate || ""}
+            />
+          </div>
+        </div>
+
+        {/* currency input */}
+        <div className="flex flex-col gap-3 py-2">
+          <label htmlFor="currency" className="font-semibold text-lg text-foreground">
+            What's your preferred currency?
           </label>
-          <Input
-            type="number"
-            placeholder="ex.2"
-            max={3}
-            min={1}
-            className="border border-zinc-500/40 shadow-md"
+          <select
+            id="currency"
+            value={formData.currency}
             onChange={(e) => {
               setFormData({
                 ...formData,
-                duration: e.target.value,
+                currency: e.target.value,
               });
             }}
-          />
+            className="border border-border bg-card shadow-sm rounded-lg px-4 py-3 text-base focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+          >
+            {CURRENCY_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* budget input */}
-        <div className="flex flex-col gap-2 py-2">
-          <label htmlFor="" className="font-medium">
-            What is your budget for the trip?
+        <div className="flex flex-col gap-3 py-2">
+          <label htmlFor="budget" className="font-semibold text-lg text-foreground">
+            What's your budget range?
           </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {BudgetOptions.map((item, index) => (
-              <div
+              <button
                 key={index}
+                type="button"
                 onClick={() => setFormData({ ...formData, budget: item.value })}
-                className={`border border-zinc-500/40 rounded-lg shadow-lg flex justify-evenly items-center
-                px-4 py-4 text-center transition-all duration-200 cursor-pointer
-                ${
+                className={`border-2 rounded-xl shadow-md flex justify-evenly items-center px-4 py-4 text-center transition-all duration-300 cursor-pointer group ${
                   formData.budget === item.value
-                    ? "bg-slate-200 scale-105 border-black"
-                    : "hover:bg-slate-200"
-                }
-                `}
+                    ? "bg-primary/20 border-primary scale-105 shadow-lg"
+                    : "border-border hover:border-primary/50 hover:bg-card/80 hover:shadow-md"
+                }`}
               >
-                <img src={item.icon} alt="" className="w-12 h-12" />
+                <img src={item.icon} alt={item.title} className="w-12 h-12 transition-transform group-hover:scale-110" />
                 <span>
-                  <h2 className="text-md font-medium">{item.title}</h2>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+                  <h2 className="text-base font-semibold">{item.title}</h2>
+                  <p className="text-xs text-muted-foreground">{item.description}</p>
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
 
         {/* members input */}
-        <div className="flex flex-col gap-2 py-2">
-          <label htmlFor="" className="font-medium">
-            What is your budget for the trip?
+        <div className="flex flex-col gap-3 py-2">
+          <label htmlFor="members" className="font-semibold text-lg text-foreground">
+            Who's traveling with you?
           </label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {MemberOptions.map((item, index) => (
-              <div
+              <button
                 key={index}
+                type="button"
                 onClick={() =>
                   setFormData({ ...formData, members: item.value })
                 }
-                className={`border border-zinc-500/40 rounded-lg shadow-lg flex gap-4
-                px-4 py-4 text-center transition-all duration-200 cursor-pointer
-                ${
+                className={`border-2 rounded-xl shadow-md flex gap-4 px-4 py-4 text-left transition-all duration-300 cursor-pointer group ${
                   formData.members === item.value
-                    ? "bg-slate-200 scale-105 border-black"
-                    : "hover:bg-slate-200"
-                }
-                `}
+                    ? "bg-primary/20 border-primary scale-105 shadow-lg"
+                    : "border-border hover:border-primary/50 hover:bg-card/80 hover:shadow-md"
+                }`}
               >
-                <img src={item.icon} alt="" className="w-14" />
+                <img src={item.icon} alt={item.title} className="w-14 h-14 transition-transform group-hover:scale-110" />
                 <span>
-                  <h2 className="text-md font-medium">{item.title}</h2>
+                  <h2 className="text-base font-semibold">{item.title}</h2>
                   <p className="text-xs text-muted-foreground">{item.description}</p>
-                  <p className="text-sm text-muted-foreground">{item.people}</p>
+                  <p className="text-sm font-medium text-foreground">{item.people}</p>
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
 
-        <div className="flex justify-center w-full">
+        <div className="flex justify-center w-full pt-4">
           {isLoading ? (
-            <Button size="lg" disabled>
-              <Loader2Icon className="animate-spin" />
-              Please wait
+            <Button size="lg" disabled className="w-full sm:w-auto">
+              <Loader2Icon className="animate-spin mr-2" />
+              Generating your trip...
             </Button>
           ) : (
             <Button
-              // onClick={handleClick}
               type="submit"
               size="lg"
-              // className="w-full md:w-[200px]"
+              className="w-full sm:w-auto px-12 bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 font-semibold"
             >
-              Generate Trip
+              Generate Trip 🚀
             </Button>
           )}
         </div>

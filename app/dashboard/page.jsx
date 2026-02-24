@@ -11,6 +11,7 @@ import Stats from "@/components/Stats";
 import { Timer, Plane, Podcast } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardTitle,
@@ -147,35 +148,41 @@ function Dashboard() {
           </div>
           {/* Trip section */}
           <div className="w-full max-w-md">
-            <Card className="w-full shadow-none border-none text-foreground p-0\">
+            <Card className="w-full shadow-none border-none text-foreground p-0">
               <MagicCard gradientColor={"#262626"} className="p-8 border-none">
                 <CardHeader className=" p-4 ">
                   <CardTitle className="flex flex-col gap-1 items-center ">
                     <span className="text-4xl ">Your Trips</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 grid grid-cols-3">
+                <CardContent className="p-4">
                   {chats && chats.length > 0 ? (
-                    chats.map((item, index) => (
-                      <Link href={`/view-trip/${item}`} key={index}>
-                        <div>
-                          <div className="flex flex-col items-center p-2 rounded-sm bg-secondary/50 cursor-pointer">
-                            <div>
-                              <Image
-                                src={images?.[0]}
-                                alt="Trip Image"
-                                width={16}
-                                height={16}
-                                className="w-24 h-24 rounded-sm mb-2"
-                              />
+                    <div className="grid grid-cols-1 gap-3">
+                      {chats.map((item, index) => (
+                        <Link href={`/view-trip/${item}`} key={index}>
+                          <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary/80 cursor-pointer transition-colors border border-border/50">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">Trip {chats.length - index}</p>
+                              <p className="text-xs text-muted-foreground">Click to view details</p>
                             </div>
-                            <p>Trip {index + 1} </p>
+                            <div className="text-right text-xs">
+                              <div className="inline-block px-2 py-1 bg-primary/20 rounded">
+                                View →
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </Link>
-                    ))
+                        </Link>
+                      ))}
+                    </div>
                   ) : (
-                    <p>No Chats found</p>
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">No trips created yet</p>
+                      <Link href="/create-trip/new">
+                        <Button size="sm" className="w-full">
+                          Create Your First Trip
+                        </Button>
+                      </Link>
+                    </div>
                   )}
                 </CardContent>
               </MagicCard>

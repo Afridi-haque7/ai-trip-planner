@@ -1,7 +1,8 @@
 import dbConnect from "@/lib/dbConnect";
-import Chats from "@/models/Trip";
+import Trip from "@/models/Trip";
 import User from "@/models/User";
 import { getToken } from "next-auth/jwt";
+import crypto from "crypto";
 
 export async function POST(request) {
     const token = await getToken({ req: request });
@@ -14,7 +15,7 @@ export async function POST(request) {
       });
     }
 
-    const { userId, tripData } = await request.json();
+    const { userId, tripContext } = await request.json();
     
     // Verify the authenticated user matches the userId in request (use MongoDB ID)
     const mongoDbUserId = token.userId || token.sub;
@@ -26,8 +27,8 @@ export async function POST(request) {
     }
 
     // Validate input
-    if (!tripData || typeof tripData !== "object") {
-      return new Response(JSON.stringify({ error: "Invalid trip data" }), {
+    if (!tripContext || typeof tripContext !== "object") {
+      return new Response(JSON.stringify({ error: "Invalid trip context" }), {
         status: 400,
         headers: { "Content-Type": "application/json" },
       });
@@ -35,6 +36,12 @@ export async function POST(request) {
     
     try {
       await dbConnect();
+
+      console.log("[Store Trip] Request received:", {
+        userId,
+        tripContextInput: tripContext?.input,
+        hasExistingTripId: !!tripContext?.tripId,
+      });
 
       // Verify user exists
       const userExists = await User.findById(userId);
@@ -45,27 +52,79 @@ export async function POST(request) {
         });
       }
 
-      // create a new trip in the chats collection
-      const newTrip = new Chats({
+      // Generate trip ID if not present (using crypto for random ID)
+      const tripId = tripContext.tripId || crypto.randomUUID();
+      
+      console.log("[Store Trip] Generated/using tripId:", tripId);
+
+      // Check for duplicate trips (prevent duplicate saves)
+      const existingTrip = await Trip.findOne({ tripId });
+      if (existingTrip) {
+        console.warn("[Store Trip] Trip with this ID already exists:", tripId);
+        return new Response(JSON.stringify({
+          success: true,
+          tripId: existingTrip.tripId,
+          _id: existingTrip._id,
+          message: "Trip already exists"
+        }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+      // Create a new trip with full TripContext structure
+      console.log("[Store Trip] Creating new trip document with tripId:", tripId);
+      const newTrip = new Trip({
+        tripId,
         userId,
-        ...tripData,
+        ...tripContext,
       });
 
-      await newTrip.save(); // save the new trip
+      const savedTrip = await newTrip.save(); // save the new trip
+      console.log("[Store Trip] Trip document saved to DB with _id:", savedTrip._id);
 
-      await User.findByIdAndUpdate(
+      // Store tripId (not MongoDB _id) in user history for easy lookup
+      const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { $push: { history: newTrip._id } },
+        { $push: { history: newTrip.tripId } },
         { new: true }
       );
+      console.log("[Store Trip] User history updated with tripId. User now has", updatedUser.history.length, "trips");
 
-      return new Response(JSON.stringify(newTrip), {
+      console.log("[Store Trip] Trip saved successfully:", {
+        tripId,
+        destination: tripContext.input?.destination,
+        userId,
+        mongoId: newTrip._id,
+        timestamp: new Date().toISOString(),
+      });
+
+      return new Response(JSON.stringify({
+        success: true,
+        tripId: newTrip.tripId,
+        _id: newTrip._id,
+        message: "Trip saved successfully"
+      }), {
         status: 201,
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-       console.error("Error storing trip:", error);
-       return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+       console.error("[Store Trip] Error storing trip:", {
+         message: error.message,
+         code: error.code,
+         timestamp: new Date().toISOString(),
+       });
+       
+       // Handle duplicate key error
+       if (error.code === 11000) {
+         console.error("[Store Trip] Duplicate tripId detected");
+         return new Response(JSON.stringify({ error: "Trip with this ID already exists" }), {
+           status: 409,
+           headers: { "Content-Type": "application/json" },
+         });
+       }
+       
+       return new Response(JSON.stringify({ error: "Internal Server Error", details: error.message }), {
          status: 500,
          headers: { "Content-Type": "application/json" },
        }); 

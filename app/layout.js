@@ -41,7 +41,7 @@ export default function RootLayout({ children }) {
             width: "100%",
           }}
         >
-          <div className="relative min-h-screen w-full bg-background dark:bg-[#0a0a0a] m-0 p-0">
+          <div className="relative min-h-screen w-full bg-background m-0 p-0">
             <Navbar />
             <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2">
               <FloatingDock
