@@ -68,6 +68,57 @@ export const MemberOptions = [
   },
 ];
 
+export const TRIP_THEMES = [
+  {
+    value: "adventure",
+    label: "Adventure",
+    icon: "⛰️",
+    description: "Thrilling activities and outdoor experiences",
+  },
+  {
+    value: "cultural",
+    label: "Cultural",
+    icon: "🏛️",
+    description: "Museums, heritage sites, and local traditions",
+  },
+  {
+    value: "nature",
+    label: "Nature",
+    icon: "🌿",
+    description: "Scenic landscapes and wildlife",
+  },
+  {
+    value: "historical",
+    label: "Historical",
+    icon: "📜",
+    description: "Ancient monuments and historical landmarks",
+  },
+  {
+    value: "shopping",
+    label: "Shopping",
+    icon: "🛍️",
+    description: "Markets, malls, and local boutiques",
+  },
+  {
+    value: "relaxation",
+    label: "Relaxation",
+    icon: "🧘",
+    description: "Spas, beaches, and peaceful retreats",
+  },
+];
+
+// Currency options
+export const CURRENCY_OPTIONS = [
+  { code: "USD", label: "USD (US Dollar)" },
+  { code: "EUR", label: "EUR (Euro)" },
+  { code: "GBP", label: "GBP (British Pound)" },
+  { code: "INR", label: "INR (Indian Rupee)" },
+  { code: "JPY", label: "JPY (Japanese Yen)" },
+  { code: "AUD", label: "AUD (Australian Dollar)" },
+  { code: "CAD", label: "CAD (Canadian Dollar)" },
+  { code: "CHF", label: "CHF (Swiss Franc)" },
+];
+
 export const testimonials = [
   {
     name: "Priya S.",
