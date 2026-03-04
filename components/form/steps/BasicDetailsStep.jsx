@@ -13,7 +13,28 @@ export default function BasicDetailsStep() {
 
   return (
     <div className="flex flex-col gap-8 px-2 sm:px-4 py-8">
-      {/* Location Input */}
+      {/* Origin Input */}
+      <div className="flex flex-col gap-3 py-2">
+        <label htmlFor="origin" className="font-semibold text-lg text-foreground">
+          Where are you traveling from?
+        </label>
+        <Autocomplete
+          apiKey={key}
+          onPlaceSelected={(v) => {
+            updateField("origin", v.formatted_address);
+          }}
+          className={`border rounded-lg px-4 py-3 shadow-sm text-base placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-transparent ${
+            errors.origin ? "border-red-500" : "border-border"
+          }`}
+          placeholder="Enter your starting location (city or country)"
+          defaultValue={formData.origin || ""}
+        />
+        {errors.origin && (
+          <p className="text-xs text-red-500 font-medium">{errors.origin}</p>
+        )}
+      </div>
+
+      {/* Destination Input */}
       <div className="flex flex-col gap-3 py-2">
         <label htmlFor="location" className="font-semibold text-lg text-foreground">
           Where are you planning to go?

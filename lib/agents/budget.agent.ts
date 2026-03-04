@@ -21,11 +21,13 @@ import {
  */
 
 interface BudgetInput {
+  origin: string;
   destination: string;
   numberOfPeople: number;
   numberOfDays: number;
   budgetLevel: "low" | "medium" | "luxury";
   currency: string;
+  tripTheme?: string[];
   itinerary: ItineraryResult;
   places: PlaceResult;
   seasonalMultiplier: "low" | "medium" | "high";
@@ -52,50 +54,71 @@ async function generateBudgetPrompt(input: BudgetInput): Promise<string> {
   const hotelSample =
     input.places.hotelRecommendations[input.budgetLevel][0] ||
     input.places.hotelRecommendations.medium[0];
+  const nightsCount = input.numberOfDays - 1;
+  const accommodationBase = hotelSample?.pricePerNight ?? 0;
+  const accommodationTotal = accommodationBase * nightsCount;
 
-  return `You are a travel budget expert. Estimate trip costs. OUTPUT ONLY VALID JSON.
+  const themeSection = input.tripTheme && input.tripTheme.length > 0
+    ? `\n- Trip Themes: ${input.tripTheme.join(", ")} — factor in theme-specific costs (e.g., adventure = equipment rental & guided tours; cultural = museum fees & guide costs; relaxation = spa & wellness upgrades)`
+    : "";
+
+  return `You are a travel budget expert. Estimate detailed, realistic trip costs. OUTPUT ONLY VALID JSON — no markdown, no code fences, no extra text.
 
 Trip Details:
+- Origin: ${input.origin}
 - Destination: ${input.destination}
-- Duration: ${input.numberOfDays} days
+- Duration: ${input.numberOfDays} days, ${nightsCount} nights
 - Travelers: ${input.numberOfPeople} people
 - Budget Level: ${input.budgetLevel}
 - Currency: ${input.currency}
-- Season: ${input.seasonalMultiplier}
-- Sample hotel: ${hotelSample?.pricePerNight || "unknown"} per night
+- Season Impact on Cost: ${input.seasonalMultiplier}${themeSection}
 
-CRITICAL: Return ONLY valid JSON with this structure:
+Known Costs (use these as anchors):
+- ${input.budgetLevel} hotel rate: ${accommodationBase} ${input.currency}/night × ${nightsCount} nights = ${accommodationTotal} ${input.currency} accommodation total per person
+- Itinerary activities total per person: ${input.itinerary.totalEstimatedCostPerPerson} ${input.currency}
+
+Flight Estimation: Research realistic round-trip airfare from ${input.origin} to ${input.destination} in ${input.currency}. Use budget/economy class for "low", economy for "medium", business class for "luxury".
+
+Budget Multipliers to apply:
+- low budget: 60-75% of standard rates
+- medium budget: 90-110% of standard rates
+- luxury budget: 180-250% of standard rates
+- low season: × 0.7  |  medium season: × 1.0  |  high season: × 1.3
+
+Return ONLY this exact JSON structure:
 {
   "currency": "${input.currency}",
   "breakdown": {
-    "flights": {"min": 300, "max": 800, "average": 550},
-    "accommodation": {"min": 1500, "max": 3000, "average": 2250},
-    "food": {"min": 600, "max": 1500, "average": 1050},
-    "localTransport": {"min": 100, "max": 300, "average": 200},
-    "activities": {"min": 200, "max": 500, "average": 350},
-    "visa": {"min": 0, "max": 200, "average": 100},
-    "miscellaneous": {"min": 100, "max": 300, "average": 200}
+    "flights": {"min": 0, "max": 0, "average": 0},
+    "accommodation": {"min": 0, "max": 0, "average": 0},
+    "food": {"min": 0, "max": 0, "average": 0},
+    "localTransport": {"min": 0, "max": 0, "average": 0},
+    "activities": {"min": 0, "max": 0, "average": 0},
+    "visa": {"min": 0, "max": 0, "average": 0},
+    "miscellaneous": {"min": 0, "max": 0, "average": 0}
   },
-  "totalEstimatedCostPerPerson": {"min": 2900, "max": 6600, "average": 4750},
-  "totalEstimatedCostForGroup": {"min": 5800, "max": 13200, "average": 9500},
+  "totalEstimatedCostPerPerson": {"min": 0, "max": 0, "average": 0},
+  "totalEstimatedCostForGroup": {"min": 0, "max": 0, "average": 0},
   "seasonalAdjustment": {
     "season": "${input.seasonalMultiplier}",
     "multiplierApplied": 1.0,
-    "reason": "Reason for multiplier"
+    "reason": "Specific reason for the multiplier applied"
   },
-  "dailyAverageCostPerPerson": 1583,
-  "budgetStatus": "SINGLE: within OR slightly_above OR over",
-  "assumptions": ["Assumption 1", "Assumption 2"]
+  "dailyAverageCostPerPerson": 0,
+  "budgetStatus": "within",
+  "assumptions": [
+    "Round-trip flights from ${input.origin} to ${input.destination} at ${input.budgetLevel} class",
+    "Accommodation: ${nightsCount} nights at ${accommodationBase} ${input.currency}/night (${input.budgetLevel} tier)",
+    "More specific assumptions..."
+  ]
 }
 
-ENUM RULES (CRITICAL):
-- budgetStatus: ONLY ONE of: within, slightly_above, over
-- NO descriptions, NO multiple values, JUST the enum value
-- NO pipe characters (|), NO commas between enum values
-
-For ${input.budgetLevel} budget: apply 70% (low), 100% (medium), or 150-200% (luxury) multipliers
-For ${input.seasonalMultiplier} season: apply 0.7x (low), 1.0x (medium), or 1.3x (high) multipliers
-Include realistic ranges and 5-7 clear assumptions.`;
+STRICT RULES:
+- budgetStatus MUST be exactly one of: within, slightly_above, over
+- ALL numeric fields must have realistic non-zero values in ${input.currency}
+- totalEstimatedCostForGroup.average = totalEstimatedCostPerPerson.average × ${input.numberOfPeople}
+- dailyAverageCostPerPerson = totalEstimatedCostPerPerson.average ÷ ${input.numberOfDays}
+- Include 5-8 specific assumptions referencing origin, destination, budget tier, season, and group size`;
 }
 
 export const budgetAgent = {

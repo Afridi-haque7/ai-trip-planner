@@ -91,12 +91,14 @@ export default function StepperForm() {
 
       // Prepare the trip input
       const tripInput = {
+        origin: formData.origin,
         destination: formData.location,
         numberOfPeople: formData.members,
         startDate: formData.startDate,
         endDate: formData.endDate,
         budgetLevel: BUDGET_MAPPING[formData.budget],
         currency: formData.currency,
+        tripTheme: formData.tripTheme || [],
       };
 
       console.log("[StepperForm] Sending trip request:", tripInput);
@@ -126,6 +128,9 @@ export default function StepperForm() {
       }
 
       console.log("[StepperForm] Trip context generated:", result.context);
+
+      // Store trip context in Redux state
+      dispatch(setTripContext(result.context));
 
       // Store trip to database
       const storeResponse = await fetch("/api/store-trip", {

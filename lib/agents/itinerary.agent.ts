@@ -21,6 +21,7 @@ import {
  */
 
 interface ItineraryInput {
+  origin: string;
   destination: string;
   numberOfDays: number;
   numberOfPeople: number;
@@ -28,6 +29,7 @@ interface ItineraryInput {
   endDate: string; // ISO format
   weather: WeatherResult;
   places: PlaceResult;
+  tripTheme?: string[];
 }
 
 /**
@@ -68,53 +70,84 @@ function normalizeTravelMode(
 }
 
 async function generateItineraryPrompt(input: ItineraryInput): Promise<string> {
-  const placesSummary = `
-Attractions available: ${input.places.attractions.map((a) => a.name).join(", ")}
-Recommended areas: ${input.places.recommendedAreas.map((a) => a.name).join(", ")}
-Key dishes to try: ${input.places.foods.map((f) => f.name).join(", ")}
-  `.trim();
+  const attractionsList = input.places.attractions
+    .map((a) => `${a.name} (${a.category}, ~${a.recommendedVisitDurationHours}h, fee: ${a.estimatedEntryFee})`)
+    .join(", ");
+  const foodsList = input.places.foods.map((f) => f.name).join(", ");
+  const areasList = input.places.recommendedAreas.map((a) => a.name).join(", ");
 
-  return `You are an expert travel itinerary planner. Create a day-by-day itinerary. OUTPUT ONLY VALID JSON.
+  const themeSection = input.tripTheme && input.tripTheme.length > 0
+    ? `\nTrip Themes: ${input.tripTheme.join(", ")}\nTHEME INSTRUCTIONS:\n- Each day theme must reflect the trip themes\n- Prioritize attractions from the list that match the selected themes\n- In every activity description, explicitly note how it connects to the trip theme(s)\n- Structure days so theme-relevant experiences get prime time slots`
+    : "";
 
-Destination: ${input.destination}
-Duration: ${input.numberOfDays} days
-Travelers: ${input.numberOfPeople}
-Season: ${input.weather.currentSeason}
+  return `You are an expert travel itinerary planner. Create a detailed, realistic day-by-day itinerary. OUTPUT ONLY VALID JSON — no markdown, no code fences, no extra text.
 
-CRITICAL: Return ONLY valid JSON with this structure:
+Trip Details:
+- Origin: ${input.origin}
+- Destination: ${input.destination}
+- Start Date: ${input.startDate}
+- End Date: ${input.endDate}
+- Total Days: ${input.numberOfDays}
+- Travelers: ${input.numberOfPeople} ${input.numberOfPeople === 1 ? "person" : "people"}
+- Season at Destination: ${input.weather.currentSeason} (${input.weather.temperatureRange})
+- Weather Note: ${input.weather.bestSeasonToVisit} is best season; ${input.weather.avoidSeason} is worst${themeSection}
+
+Available Attractions: ${attractionsList}
+Local Foods to Experience: ${foodsList}
+Recommended Areas: ${areasList}
+
+DAY PLANNING RULES (follow strictly):
+1. Day 1 (${input.startDate}): Arrival day from ${input.origin}. First activity = airport/station arrival & hotel check-in.
+   - SHORT TRIP (${input.numberOfDays} <= 3 days): Add 2-3 real activities after check-in — every hour counts on a short trip.
+   - LONGER TRIP (${input.numberOfDays} > 3 days): Keep it light, 1-2 activities after check-in since travelers need to settle in.
+2. Last Day (${input.endDate}): Departure day back to ${input.origin}. End with hotel checkout & airport/station transfer.
+   - SHORT TRIP (${input.numberOfDays} <= 3 days): Add 2-3 activities before departure — maximize the limited time.
+   - LONGER TRIP (${input.numberOfDays} > 3 days): 1-2 light morning activities before heading to the airport/station.
+3. Middle Days: MINIMUM 3 activities per day, ideally 4. Include at least 1 meal/food activity and 2 distinct attractions each day.
+4. ABSOLUTE MINIMUM: Every single day MUST have at least 2 activities. A day with 0 or 1 activity is INVALID and will be rejected.
+5. Space activities realistically — respect travel time between locations and recommended visit durations.
+6. Activity IDs must be globally unique across ALL days (activity_1, activity_2, activity_3 ... never reuse an ID).
+7. travelSegments reference activity IDs within the SAME day only.
+8. Use accurate GPS coordinates for all locations at the destination.
+9. COST ACCURACY — estimatedCostPerPerson for each activity MUST reflect the real entry fee, ticket price, or average meal cost. Use 0 ONLY if genuinely free.
+10. TRAVEL COST ACCURACY — travelSegments estimatedCost must be a realistic fare for that transport mode (e.g., taxi ride, auto-rickshaw, bus ticket cost). Use 0 only for walking segments.
+11. dailyEstimatedCostPerPerson = sum of ALL activity estimatedCostPerPerson + sum of ALL travelSegment estimatedCost for that day.
+12. totalEstimatedCostPerPerson = sum of ALL dailyEstimatedCostPerPerson values across every day.
+
+Return ONLY this exact JSON structure:
 {
-  "startDate": "2026-05-12",
-  "endDate": "2026-05-14",
-  "totalDays": 3,
+  "startDate": "${input.startDate}",
+  "endDate": "${input.endDate}",
+  "totalDays": ${input.numberOfDays},
   "days": [
     {
-      "date": "2026-05-12",
-      "theme": "Day theme",
-      "weatherNote": "Weather impact",
+      "date": "YYYY-MM-DD",
+      "theme": "Descriptive theme name for the day",
+      "weatherNote": "Specific weather note for this day and any gear/preparation advice",
       "activities": [
         {
           "id": "activity_1",
           "name": "Activity name",
-          "description": "What to do",
-          "type": "SINGLE: attraction OR food OR hotel OR travel OR leisure",
+          "description": "Engaging description of the experience and why it's worthwhile",
+          "type": "attraction",
           "startTime": "09:00",
           "endTime": "11:30",
           "estimatedDurationMinutes": 150,
           "location": {
-            "name": "Location name",
-            "address": "Address",
-            "latitude": 0.0,
-            "longitude": 0.0
+            "name": "Specific venue or place name",
+            "address": "Full street address at the destination",
+            "latitude": 0.0000,
+            "longitude": 0.0000
           },
           "estimatedCostPerPerson": 20,
-          "notes": "Optional"
+          "notes": "Practical tip (best time to visit, what to bring, booking advice, etc.)"
         }
       ],
       "travelSegments": [
         {
           "fromActivityId": "activity_1",
           "toActivityId": "activity_2",
-          "travelMode": "SINGLE: walk OR car OR bike OR public_transport OR flight",
+          "travelMode": "car",
           "estimatedTravelTimeMinutes": 30,
           "estimatedCost": 0
         }
@@ -130,16 +163,11 @@ CRITICAL: Return ONLY valid JSON with this structure:
   "totalEstimatedCostPerPerson": 300
 }
 
-ENUM RULES (CRITICAL):
-- type: ONLY ONE of: attraction, food, hotel, travel, leisure
-- travelMode: ONLY ONE of: walk, car, bike, public_transport, flight
-- NO descriptions, NO multiple values, JUST the enum value
-- NO pipe characters (|), NO commas between enum values
-
-Available Places:
-${placesSummary}
-
-Create immersive experience for ${input.numberOfPeople} ${input.numberOfPeople === 1 ? "traveler" : "travelers"}.`;
+STRICT ENUM RULES — violations will cause a parse error:
+- type MUST be exactly one of: attraction, food, hotel, travel, leisure
+- travelMode MUST be exactly one of: walk, car, bike, public_transport, flight
+- Dates MUST be in YYYY-MM-DD format and match the trip date range
+- Times MUST be in HH:MM 24-hour format`;
 }
 
 export const itineraryAgent = {

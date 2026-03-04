@@ -7,6 +7,7 @@ export const TripFormContext = createContext();
 export const TripFormProvider = ({ children }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
+    origin: null,
     location: null,
     startDate: null,
     endDate: null,
@@ -36,8 +37,11 @@ export const TripFormProvider = ({ children }) => {
 
     if (step === 1) {
       // Basic Details validation
+      if (!formData.origin) {
+        newErrors.origin = "Origin location is required";
+      }
       if (!formData.location) {
-        newErrors.location = "Location is required";
+        newErrors.location = "Destination is required";
       }
       if (!formData.startDate) {
         newErrors.startDate = "Start date is required";
@@ -95,6 +99,7 @@ export const TripFormProvider = ({ children }) => {
   const resetForm = useCallback(() => {
     setCurrentStep(1);
     setFormData({
+      origin: null,
       location: null,
       startDate: null,
       endDate: null,

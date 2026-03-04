@@ -10,7 +10,7 @@ body {
 }
 
 root {
-  
+
 }
 
 @layer base {
@@ -71,6 +71,7 @@ root {
     --animate-aurora: aurora 8s ease-in-out infinite alternate;
     --animate-marquee: marquee var(--duration) infinite linear;
     --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+    --animate-shine: shine var(--duration) infinite linear;
   }
 }
 
@@ -137,6 +138,17 @@ root {
     }
     100% {
       transform: translateY(0);
+    }
+  }
+  @keyframes shine {
+  0% {
+    background-position: 0% 0%;
+    }
+  50% {
+    background-position: 100% 100%;
+    }
+  to {
+    background-position: 0% 0%;
     }
   }
 }

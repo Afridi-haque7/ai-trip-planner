@@ -120,6 +120,7 @@ export async function runTripPipeline(input: TripInput): Promise<{
           name: "WeatherAgent",
           fn: () =>
             weatherAgent.run({
+              origin: validatedInput.origin,
               destination: validatedInput.destination,
               startDate: validatedInput.startDate,
               endDate: validatedInput.endDate,
@@ -130,8 +131,10 @@ export async function runTripPipeline(input: TripInput): Promise<{
           name: "PlaceAgent",
           fn: () =>
             placeAgent.run({
+              origin: validatedInput.origin,
               destination: validatedInput.destination,
               numberOfPeople: validatedInput.numberOfPeople,
+              tripTheme: validatedInput.tripTheme,
             }),
           schema: PlaceResultSchema,
         },
@@ -175,6 +178,7 @@ export async function runTripPipeline(input: TripInput): Promise<{
       const itineraryResult = await withRetry(
         () =>
           itineraryAgent.run({
+            origin: validatedInput.origin,
             destination: validatedInput.destination,
             numberOfDays: context.derived.numberOfDays,
             numberOfPeople: validatedInput.numberOfPeople,
@@ -182,6 +186,7 @@ export async function runTripPipeline(input: TripInput): Promise<{
             endDate: validatedInput.endDate,
             weather: context.weather!,
             places: context.places!,
+            tripTheme: validatedInput.tripTheme,
           }),
         ItineraryResultSchema,
         RETRY_CONFIG,
@@ -212,11 +217,13 @@ export async function runTripPipeline(input: TripInput): Promise<{
       const budgetResult = await withRetry(
         () =>
           budgetAgent.run({
+            origin: validatedInput.origin,
             destination: validatedInput.destination,
             numberOfPeople: validatedInput.numberOfPeople,
             numberOfDays: context.derived.numberOfDays,
             budgetLevel: validatedInput.budgetLevel,
             currency: validatedInput.currency,
+            tripTheme: validatedInput.tripTheme,
             itinerary: context.itinerary!,
             places: context.places!,
             seasonalMultiplier: context.weather?.seasonalImpactOnCost || "medium",

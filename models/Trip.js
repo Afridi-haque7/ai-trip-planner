@@ -22,6 +22,7 @@ import mongoose from "mongoose";
 // ============ INPUT SCHEMA ============
 const TripInputSchema = new mongoose.Schema(
   {
+    origin: { type: String, required: true }, // User's starting location
     destination: { type: String, required: true },
     numberOfPeople: { type: Number, required: true },
     startDate: { type: String, required: true }, // ISO format (YYYY-MM-DD)
@@ -32,6 +33,7 @@ const TripInputSchema = new mongoose.Schema(
       required: true,
     },
     currency: { type: String, required: true }, // ISO 4217 code (e.g., "USD", "INR")
+    tripTheme: { type: [String], default: [] }, // Theme preferences: adventure, cultural, nature, historical, shopping, relaxation
   },
   { _id: false }
 );

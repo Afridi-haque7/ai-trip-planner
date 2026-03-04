@@ -15,6 +15,7 @@ import { WeatherResultSchema, type WeatherResult } from "@/lib/adk/schemas";
  */
 
 interface WeatherInput {
+  origin: string;
   destination: string;
   startDate: string; // ISO format
   endDate: string; // ISO format
@@ -35,31 +36,27 @@ function normalizeSeasonalImpact(value: string): "low" | "medium" | "high" {
 }
 
 async function generateWeatherPrompt(input: WeatherInput): Promise<string> {
-  return `You are a travel weather expert. Provide weather information for the destination. OUTPUT ONLY VALID JSON.
+  return `You are a travel weather expert. Provide accurate weather and season information. OUTPUT ONLY VALID JSON — no markdown, no code fences, no extra text.
 
+Origin: ${input.origin}
 Destination: ${input.destination}
 Travel Dates: ${input.startDate} to ${input.endDate}
 
-CRITICAL: Return ONLY this JSON structure with NO extra text:
+Context: The traveler is flying from ${input.origin} to ${input.destination}. Consider the climate contrast between origin and destination. Assess whether the travel dates fall during peak tourist season, shoulder season, or off-season for this destination, as this affects pricing.
+
+Return ONLY this exact JSON structure:
 {
-  "currentSeason": "Name of the season (Spring/Summer/Autumn/Winter)",
-  "bestSeasonToVisit": "Best season name for this destination (Spring/Summer/Autumn/Winter)",
-  "avoidSeason": "Season to avoid (Spring/Summer/Autumn/Winter)",
-  "temperatureRange": "Expected temperature range during travel dates (e.g., '25-35°C')",
-  "seasonalImpactOnCost": "ONE WORD ONLY: low OR medium OR high"
+  "currentSeason": "Season name at destination during travel dates (e.g. Winter, Monsoon, Dry Season)",
+  "bestSeasonToVisit": "Single best season for this destination",
+  "avoidSeason": "Worst season to visit this destination",
+  "temperatureRange": "Realistic temperature range during the specified travel dates (e.g., '15-25°C')",
+  "seasonalImpactOnCost": "low"
 }
 
-ENUM VALUES MUST BE EXACT:
-- seasonalImpactOnCost: ONLY "low" OR "medium" OR "high" (no description, just the word)
-
-Example valid response:
-{
-  "currentSeason": "Summer",
-  "bestSeasonToVisit": "Autumn",
-  "avoidSeason": "Winter",
-  "temperatureRange": "28-35°C",
-  "seasonalImpactOnCost": "medium"
-}`;
+STRICT RULES:
+- seasonalImpactOnCost MUST be exactly one of: low, medium, high — nothing else
+- temperatureRange must reflect the actual destination climate for the given travel dates
+- All 5 fields are required`;
 }
 
 export const weatherAgent = {

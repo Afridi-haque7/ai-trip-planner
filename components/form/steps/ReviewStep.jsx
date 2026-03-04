@@ -34,7 +34,12 @@ export default function ReviewStep() {
 
   const reviewItems = [
     {
-      icon: "📍",
+      icon: "�",
+      label: "Origin",
+      value: formData.origin || "Not selected",
+    },
+    {
+      icon: "�📍",
       label: "Destination",
       value: formData.location || "Not selected",
     },

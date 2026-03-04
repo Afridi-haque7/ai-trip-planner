@@ -120,12 +120,14 @@ function InputForm() {
       try {
         // Prepare the new ADK schema payload
         const tripInput = {
+          origin: formData.origin,
           destination: formData.location,
           numberOfPeople: formData.members,
           startDate: formData.startDate,
           endDate: formData.endDate,
           budgetLevel: BUDGET_MAPPING[formData.budget],
           currency: formData.currency,
+          tripTheme: formData.tripTheme || [],
         };
 
         console.log("[InputForm] Sending trip request:", tripInput);
@@ -156,6 +158,9 @@ function InputForm() {
         }
 
         console.log("[InputForm] Trip context generated:", result.context);
+
+        // Store trip context in Redux state
+        dispatch(setTripContext(result.context));
 
         console.log("[InputForm] Trip generation succeeded, storing to database...");
         console.log("[InputForm] Using userId:", userId);

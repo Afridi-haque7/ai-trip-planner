@@ -42,12 +42,14 @@ export async function POST(request) {
     let tripInput;
     try {
       tripInput = TripInputSchema.parse({
+        origin: body.origin,
         destination: body.destination,
         numberOfPeople: body.numberOfPeople,
         startDate: body.startDate,
         endDate: body.endDate,
         budgetLevel: body.budgetLevel,
         currency: body.currency,
+        tripTheme: body.tripTheme,
       });
     } catch (validationError) {
       const errors = validationError.errors

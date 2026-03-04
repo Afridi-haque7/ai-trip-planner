@@ -206,12 +206,14 @@ export type DerivedTripMetadata = z.infer<typeof DerivedTripMetadataSchema>;
 // ============ TRIP INPUT ============
 
 export const TripInputSchema = z.object({
+  origin: z.string().min(1), // Origin location for cost and travel planning
   destination: z.string().min(1),
   numberOfPeople: z.number().int().positive(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   budgetLevel: z.enum(["low", "medium", "luxury"]),
   currency: z.string().length(3).toUpperCase(), // ISO 4217 currency code
+  tripTheme: z.array(z.string()).optional().default([]), // Theme preferences: adventure, cultural, nature, historical, shopping, relaxation
 });
 
 export type TripInput = z.infer<typeof TripInputSchema>;

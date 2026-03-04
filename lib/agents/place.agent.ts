@@ -16,8 +16,10 @@ import { getMultipleImageUrls, getImageUrl } from "@/lib/tools/image.tool";
  */
 
 interface PlaceInput {
+  origin: string;
   destination: string;
   numberOfPeople: number;
+  tripTheme?: string[];
 }
 
 /**
@@ -66,19 +68,26 @@ function normalizeSuitableFor(
 }
 
 async function generatePlacePrompt(input: PlaceInput): Promise<string> {
-  return `You are a travel destination expert. Provide comprehensive place recommendations. OUTPUT ONLY VALID JSON.
+  const themeSection = input.tripTheme && input.tripTheme.length > 0
+    ? `\nTrip Themes: ${input.tripTheme.join(", ")}\nPRIORITIZATION: Rank ALL recommendations (attractions, foods, areas, hotels) by relevance to the selected themes. Theme-matching items must appear first in each array. In each description, highlight why the item suits the chosen theme(s).`
+    : "";
 
+  return `You are a travel destination expert. Provide comprehensive, realistic place recommendations. OUTPUT ONLY VALID JSON — no markdown, no code fences, no extra text.
+
+Origin: ${input.origin}
 Destination: ${input.destination}
-Travelers: ${input.numberOfPeople}
+Travelers: ${input.numberOfPeople} people${themeSection}
 
-CRITICAL: Return ONLY this JSON structure with NO extra text:
+Context: Traveler is coming from ${input.origin}. Factor in the origin when recommending areas (e.g., note transport hubs, arrival points, areas convenient from the main airport/station).
+
+Return ONLY this exact JSON structure with NO extra text:
 {
   "attractions": [
     {
-      "name": "Attraction name",
-      "description": "Brief description",
-      "location": "City/area",
-      "category": "SINGLE VALUE: nature OR historical OR adventure OR cultural OR shopping OR other",
+      "name": "Real attraction name",
+      "description": "Engaging 1-2 sentence description highlighting why it is worth visiting",
+      "location": "Specific neighborhood or area within the destination",
+      "category": "nature",
       "estimatedEntryFee": 20,
       "rating": 4.5,
       "reviewsCount": 1000,
@@ -87,13 +96,13 @@ CRITICAL: Return ONLY this JSON structure with NO extra text:
   ],
   "foods": [
     {
-      "name": "Dish name",
-      "description": "Brief",
+      "name": "Real local dish name",
+      "description": "What makes this dish special and where to best experience it",
       "averagePrice": 10,
       "topRestaurants": [
         {
-          "name": "Restaurant",
-          "location": "Location",
+          "name": "Real restaurant name",
+          "location": "Specific area or street",
           "rating": 4.5
         }
       ]
@@ -101,39 +110,37 @@ CRITICAL: Return ONLY this JSON structure with NO extra text:
   ],
   "recommendedAreas": [
     {
-      "name": "Area",
-      "description": "Why good",
-      "suitableFor": "SINGLE VALUE: budget OR family OR luxury OR nightlife OR couples"
+      "name": "Area name",
+      "description": "Why this area is recommended, what it offers travelers",
+      "suitableFor": "budget"
     }
   ],
   "hotelRecommendations": {
     "budget": [
-      {"name": "H1", "description": "D", "location": "Area", "pricePerNight": 50, "rating": 4.0, "reviewsCount": 500, "amenities": ["WiFi"]},
-      {"name": "H2", "description": "D", "location": "Area", "pricePerNight": 55, "rating": 4.1, "reviewsCount": 450, "amenities": ["WiFi"]},
-      {"name": "H3", "description": "D", "location": "Area", "pricePerNight": 48, "rating": 3.9, "reviewsCount": 380, "amenities": ["WiFi"]}
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 50, "rating": 4.0, "reviewsCount": 500, "amenities": ["WiFi"]},
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 55, "rating": 4.1, "reviewsCount": 450, "amenities": ["WiFi"]},
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 48, "rating": 3.9, "reviewsCount": 380, "amenities": ["WiFi"]}
     ],
     "medium": [
-      {"name": "M1", "description": "D", "location": "Area", "pricePerNight": 120, "rating": 4.5, "reviewsCount": 800, "amenities": ["WiFi", "Pool"]},
-      {"name": "M2", "description": "D", "location": "Area", "pricePerNight": 130, "rating": 4.4, "reviewsCount": 750, "amenities": ["WiFi", "Pool"]},
-      {"name": "M3", "description": "D", "location": "Area", "pricePerNight": 115, "rating": 4.3, "reviewsCount": 680, "amenities": ["WiFi"]}
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 120, "rating": 4.5, "reviewsCount": 800, "amenities": ["WiFi", "Pool"]},
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 130, "rating": 4.4, "reviewsCount": 750, "amenities": ["WiFi", "Pool"]},
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 115, "rating": 4.3, "reviewsCount": 680, "amenities": ["WiFi"]}
     ],
     "luxury": [
-      {"name": "L1", "description": "D", "location": "Area", "pricePerNight": 300, "rating": 4.8, "reviewsCount": 1200, "amenities": ["Pool", "Spa"]},
-      {"name": "L2", "description": "D", "location": "Area", "pricePerNight": 320, "rating": 4.9, "reviewsCount": 1500, "amenities": ["Pool", "Spa"]},
-      {"name": "L3", "description": "D", "location": "Area", "pricePerNight": 280, "rating": 4.7, "reviewsCount": 1100, "amenities": ["WiFi"]}
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 300, "rating": 4.8, "reviewsCount": 1200, "amenities": ["Pool", "Spa"]},
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 320, "rating": 4.9, "reviewsCount": 1500, "amenities": ["Pool", "Spa"]},
+      {"name": "Real hotel name", "description": "Brief accurate description", "location": "Neighborhood name", "pricePerNight": 280, "rating": 4.7, "reviewsCount": 1100, "amenities": ["WiFi"]}
     ]
   }
 }
 
-ENUM RULES (CRITICAL):
-- category: ONLY ONE of: nature, historical, adventure, cultural, shopping, other
-- suitableFor: ONLY ONE of: budget, family, luxury, nightlife, couples
-- NO pipe characters (|), NO commas between values, NO descriptions for enum fields
-- HOTEL LOCATION: Must be a string (neighborhood/area name), NOT an object with lat/long
-
-Include 5+ attractions, 3-5 dishes, 3-5 areas, 2-3 hotels per tier with location, pricePerNight, rating, reviewsCount, amenities.
-
-NOTE: Do NOT include images in your response. Images will be fetched separately using image search.`;
+STRICT RULES:
+- category MUST be exactly one of: nature, historical, adventure, cultural, shopping, other
+- suitableFor MUST be exactly one of: budget, family, luxury, nightlife, couples
+- hotel location MUST be a plain string (area name), NEVER an object or coordinates
+- Include 6-8 real attractions, 4-6 real local dishes, 3-5 areas, exactly 3 hotels per tier
+- Use realistic local prices — reflect actual costs in the destination's currency context
+- Do NOT include images — they are fetched separately`;
 }
 
 export const placeAgent = {
