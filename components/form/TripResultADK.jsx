@@ -34,7 +34,7 @@ function TripResultADK({ data }) {
 
   const [currentDay, setCurrentDay] = useState(1);
   return (
-    <div className="relative mb-12 flex min-h-screen w-full flex-col overflow-x-hidden bg-white dark:bg-slate-950">
+    <div className="relative mb-12 flex min-h-screen w-full flex-col overflow-x-hidden rounded-xl bg-white dark:bg-slate-950">
       {/* Main Content */}
       <main className="flex flex-1 justify-center py-8 px-4 sm:px-8">
         <div className="flex w-full max-w-[1280px] gap-8 flex-col lg:flex-row">
@@ -42,7 +42,7 @@ function TripResultADK({ data }) {
           <div className="flex flex-1 flex-col gap-8">
             {/* Overview Component */}
             <div className="flex gap-4">
-              <div className="w-[70%]">
+              <div className="w-[70%] rounded-xl flex-1">
                 <Overview
                   weather={weather}
                   input={input}
@@ -51,28 +51,36 @@ function TripResultADK({ data }) {
                   recommendedAreas={recommendedAreas}
                 />
               </div>
-              <div className="w-[30%]">
-                <Budget budget={budget} />
-              </div>
+              {budget && (
+                <div className="w-[30%]">
+                  <Budget budget={budget} />
+                </div>
+              )}
             </div>
 
             {/* Attractions Component */}
             <div className="flex gap-4">
-              <div className="w-[60%]">
-                <Attractions attractions={attractions} />
-              </div>
-              <div className="w-[40%] mt-10">
-                <Foods foods={foods} />
-              </div>
+              {attractions && (
+                <div className="w-[60%]">
+                  <Attractions attractions={attractions} />
+                </div>
+              )}
+              {foods && (
+                <div className="w-[40%] mt-10">
+                  <Foods foods={foods} />
+                </div>
+              )}
             </div>
             {/* Itinerary Component */}
-            <div>
-              <Itinerary
-                currentDay={currentDay}
-                setCurrentDay={setCurrentDay}
-                itinerary={itinerary}
-              />
-            </div>
+            {itinerary && (
+              <div>
+                <Itinerary
+                  currentDay={currentDay}
+                  setCurrentDay={setCurrentDay}
+                  itinerary={itinerary}
+                />
+              </div>
+            )}
           </div>
         </div>
       </main>

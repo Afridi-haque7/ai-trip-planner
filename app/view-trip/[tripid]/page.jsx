@@ -103,7 +103,7 @@ export default function ViewTrip() {
             agents.
           </p>
         </div>
-        <div className="mt-8 mx-1 md:mx-4 p-2 md:p-4 border rounded-2xl bg-slate-200/30">
+        <div className="mt-8 mx-1 md:mx-4 border rounded-2xl">
           <TripResultADK data={trip} />
         </div>
       </main>

@@ -77,7 +77,7 @@ export default function Overview({
   ];
 
   return (
-    <div className="w-full h-full flex flex-col gap-8">
+    <div className="w-full h-full flex flex-col gap-8 rounded-xl">
       <section className="rounded-xl bg-white dark:bg-slate-900 p-6 shadow-sm border border-slate-100 dark:border-slate-800 relative overflow-hidden group">
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">

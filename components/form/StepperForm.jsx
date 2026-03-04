@@ -6,7 +6,7 @@ import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setTripContext, setLoadingTripGeneration, setTripError } from "@/lib/redux/slices/tripSlice";
 import { TripFormContext } from "@/components/form/TripFormContext";
 import BasicDetailsStep from "@/components/form/steps/BasicDetailsStep";
@@ -36,34 +36,34 @@ export default function StepperForm() {
     validateStep,
   } = useContext(TripFormContext);
 
-  const [userId, setUserId] = useState(null);
+  const userId = useSelector((state) => state.user.googleId) || "unknown";
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
   const dispatch = useDispatch();
 
   // Fetch user ID when session is available
-  const handleSessionCheck = async () => {
-    if (session && !userId) {
-      const email = session.user.email;
-      try {
-        const response = await fetch("/api/get-user-id", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-        if (response.ok) {
-          const user = await response.json();
-          setUserId(user._id);
-        }
-      } catch (error) {
-        console.error("Error fetching user ID:", error);
-        toast("Error: Could not fetch user information", {
-          action: { label: "Close", onClick: () => {} },
-        });
-      }
-    }
-  };
+  // const handleSessionCheck = async () => {
+  //   if (session && !userId) {
+  //     const email = session.user.email;
+  //     try {
+  //       const response = await fetch("/api/get-user-id", {
+  //         method: "POST",
+  //         headers: { "Content-Type": "application/json" },
+  //         body: JSON.stringify({ email }),
+  //       });
+  //       if (response.ok) {
+  //         const user = await response.json();
+  //         // setUserId(user._id);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching user ID:", error);
+  //       toast("Error: Could not fetch user information", {
+  //         action: { label: "Close", onClick: () => {} },
+  //       });
+  //     }
+  //   }
+  // };
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
@@ -86,7 +86,9 @@ export default function StepperForm() {
     try {
       // Ensure we have user ID
       if (!userId) {
-        await handleSessionCheck();
+        
+        console.warn("User Id is missing");
+        return;
       }
 
       // Prepare the trip input

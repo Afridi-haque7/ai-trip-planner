@@ -7,205 +7,302 @@ import {
 } from "@/lib/adk/schemas";
 
 /**
- * Itinerary Agent
+ * Itinerary Agent — v3
  *
- * Responsibilities:
- * - Generate day-by-day itinerary
- * - Distribute attractions intelligently
- * - Consider weather patterns and constraints
- * - Plan travel segments between activities
- * - Include meals and leisure time
- *
- * Input: destination, numberOfDays, numberOfPeople, startDate, endDate, weather, places
- * Output: ItineraryResult (strict schema)
+ * Fixes over v2:
+ *  1. sanitizeNulls() — drops travelSegments with null IDs, strips null
+ *     optional fields before Zod validation (was causing Attempt 1 failure)
+ *  2. Prompt trimmed to reduce token usage — descriptions shortened,
+ *     example JSON made minimal (was causing JSON truncation at ~11k chars)
+ *  3. maxOutputTokens should be raised to 16000 in config.ts (see note below)
  */
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ItineraryInput {
   origin: string;
   destination: string;
   numberOfDays: number;
   numberOfPeople: number;
-  startDate: string; // ISO format
-  endDate: string; // ISO format
+  startDate: string;
+  endDate: string;
+  currency: string;
   weather: WeatherResult;
   places: PlaceResult;
   tripTheme?: string[];
 }
 
-/**
- * Extract first valid activity type
- */
+// ─── Enum normalisers ─────────────────────────────────────────────────────────
+
 function normalizeActivityType(
   value: string
 ): "attraction" | "food" | "hotel" | "travel" | "leisure" {
-  const lower = value.toLowerCase();
-  const validTypes = [
-    "attraction",
-    "food",
-    "hotel",
-    "travel",
-    "leisure",
-  ];
-
-  for (const type of validTypes) {
-    if (lower.includes(type)) return type as any;
-  }
-
-  return "leisure";
+  const lower = (value ?? "").toLowerCase();
+  const valid = ["attraction", "food", "hotel", "travel", "leisure"];
+  return (valid.find((t) => lower.includes(t)) ?? "leisure") as any;
 }
 
-/**
- * Extract first valid travel mode
- */
 function normalizeTravelMode(
   value: string
 ): "walk" | "car" | "bike" | "public_transport" | "flight" {
-  const lower = value.toLowerCase();
+  const lower = (value ?? "").toLowerCase();
   if (lower.includes("walk")) return "walk";
   if (lower.includes("flight") || lower.includes("fly")) return "flight";
   if (lower.includes("bike") || lower.includes("bicycle")) return "bike";
-  if (lower.includes("public") || lower.includes("bus") || lower.includes("metro")) return "public_transport";
-  if (lower.includes("car") || lower.includes("taxi") || lower.includes("drive")) return "car";
+  if (lower.includes("public") || lower.includes("bus") || lower.includes("metro") || lower.includes("train")) return "public_transport";
+  if (lower.includes("car") || lower.includes("taxi") || lower.includes("cab") || lower.includes("drive")) return "car";
   return "walk";
 }
 
-async function generateItineraryPrompt(input: ItineraryInput): Promise<string> {
+// ─── JSON extractor ───────────────────────────────────────────────────────────
+
+function extractJson(text: string): string {
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  if (fenceMatch) return fenceMatch[1].trim();
+
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end !== -1) return text.slice(start, end + 1).trim();
+
+  return text.trim();
+}
+
+// ─── Null sanitizer ───────────────────────────────────────────────────────────
+
+/**
+ * Called BEFORE Zod validation.
+ * - Drops travelSegments where fromActivityId or toActivityId is null/empty
+ *   (LLM sometimes outputs null for the last segment of a day)
+ * - Strips null optional fields (notes, relatedPlaceId) so Zod doesn't reject
+ * - Ensures numeric fields are never null
+ */
+function sanitizeNulls(parsed: any): any {
+  if (!Array.isArray(parsed.days)) return parsed;
+
+  parsed.days = parsed.days.map((day: any) => {
+    // Drop segments with null/missing IDs
+    day.travelSegments = (day.travelSegments ?? []).filter(
+      (s: any) =>
+        s?.fromActivityId &&
+        typeof s.fromActivityId === "string" &&
+        s?.toActivityId &&
+        typeof s.toActivityId === "string"
+    );
+
+    // Clean activity optional fields
+    day.activities = (day.activities ?? []).map((a: any) => {
+      const c: any = { ...a };
+      if (c.notes == null) delete c.notes;
+      if (c.relatedPlaceId == null) delete c.relatedPlaceId;
+      if (c.estimatedCostPerPerson == null) c.estimatedCostPerPerson = 0;
+      if (c.location) {
+        if (c.location.latitude == null) c.location.latitude = 0;
+        if (c.location.longitude == null) c.location.longitude = 0;
+      }
+      return c;
+    });
+
+    // Clean segment optional fields
+    day.travelSegments = day.travelSegments.map((s: any) => ({
+      ...s,
+      estimatedCost: s.estimatedCost == null ? 0 : Number(s.estimatedCost),
+    }));
+
+    // Clean mealsIncluded nulls
+    if (day.mealsIncluded) {
+      const m = day.mealsIncluded;
+      if (m.breakfast == null) delete m.breakfast;
+      if (m.lunch == null) delete m.lunch;
+      if (m.dinner == null) delete m.dinner;
+    }
+
+    return day;
+  });
+
+  return parsed;
+}
+
+// ─── Math corrector ───────────────────────────────────────────────────────────
+
+function correctCostMath(parsed: any): any {
+  if (!Array.isArray(parsed.days)) return parsed;
+
+  let runningTotal = 0;
+
+  parsed.days = parsed.days.map((day: any) => {
+    const activityCosts = (day.activities ?? []).reduce(
+      (sum: number, a: any) => sum + (Number(a.estimatedCostPerPerson) || 0),
+      0
+    );
+    const segmentCosts = (day.travelSegments ?? []).reduce(
+      (sum: number, s: any) => sum + (Number(s.estimatedCost) || 0),
+      0
+    );
+    const dailyTotal = Math.round(activityCosts + segmentCosts);
+    runningTotal += dailyTotal;
+    return { ...day, dailyEstimatedCostPerPerson: dailyTotal };
+  });
+
+  parsed.totalEstimatedCostPerPerson = runningTotal;
+  return parsed;
+}
+
+// ─── Activity ID enforcer ─────────────────────────────────────────────────────
+
+function enforceUniqueActivityIds(parsed: any): any {
+  if (!Array.isArray(parsed.days)) return parsed;
+
+  const seenIds = new Set<string>();
+  let counter = 1;
+
+  parsed.days = parsed.days.map((day: any) => {
+    const idMap: Record<string, string> = {};
+
+    day.activities = (day.activities ?? []).map((activity: any) => {
+      let id = activity.id;
+      if (!id || seenIds.has(id)) {
+        id = `activity_${counter++}`;
+      }
+      seenIds.add(id);
+      idMap[activity.id] = id;
+      return { ...activity, id };
+    });
+
+    day.travelSegments = (day.travelSegments ?? []).map((seg: any) => ({
+      ...seg,
+      fromActivityId: idMap[seg.fromActivityId] ?? seg.fromActivityId,
+      toActivityId: idMap[seg.toActivityId] ?? seg.toActivityId,
+    }));
+
+    return day;
+  });
+
+  return parsed;
+}
+
+// ─── Prompt builder ───────────────────────────────────────────────────────────
+
+/**
+ * IMPORTANT — token budget:
+ *   llama-3.1-8b-instant context = 128k tokens, but maxOutputTokens in
+ *   config.ts is set to 8000 which is NOT enough for a 7-day itinerary.
+ *
+ *   In lib/adk/config.ts, change:
+ *     maxOutputTokens: 8000  →  maxOutputTokens: 16000
+ *
+ *   This prompt is kept lean (no verbose example JSON) to leave headroom
+ *   for the actual content.
+ */
+function generateItineraryPrompt(input: ItineraryInput): string {
+  // Keep attraction list concise to save prompt tokens
   const attractionsList = input.places.attractions
-    .map((a) => `${a.name} (${a.category}, ~${a.recommendedVisitDurationHours}h, fee: ${a.estimatedEntryFee})`)
-    .join(", ");
-  const foodsList = input.places.foods.map((f) => f.name).join(", ");
-  const areasList = input.places.recommendedAreas.map((a) => a.name).join(", ");
+    .map((a) => `${a.name}(${a.category},${a.recommendedVisitDurationHours}h,${a.estimatedEntryFee}${input.currency})`)
+    .join("|");
 
-  const themeSection = input.tripTheme && input.tripTheme.length > 0
-    ? `\nTrip Themes: ${input.tripTheme.join(", ")}\nTHEME INSTRUCTIONS:\n- Each day theme must reflect the trip themes\n- Prioritize attractions from the list that match the selected themes\n- In every activity description, explicitly note how it connects to the trip theme(s)\n- Structure days so theme-relevant experiences get prime time slots`
-    : "";
+  const foodsList = input.places.foods
+    .map((f) => `${f.name}(${f.averagePrice}${input.currency})`)
+    .join("|");
 
-  return `You are an expert travel itinerary planner. Create a detailed, realistic day-by-day itinerary. OUTPUT ONLY VALID JSON — no markdown, no code fences, no extra text.
+  const areasList = input.places.recommendedAreas.map((a) => a.name).join("|");
 
-Trip Details:
-- Origin: ${input.origin}
-- Destination: ${input.destination}
-- Start Date: ${input.startDate}
-- End Date: ${input.endDate}
-- Total Days: ${input.numberOfDays}
-- Travelers: ${input.numberOfPeople} ${input.numberOfPeople === 1 ? "person" : "people"}
-- Season at Destination: ${input.weather.currentSeason} (${input.weather.temperatureRange})
-- Weather Note: ${input.weather.bestSeasonToVisit} is best season; ${input.weather.avoidSeason} is worst${themeSection}
+  const themeSection =
+    input.tripTheme && input.tripTheme.length > 0
+      ? `\nThemes: ${input.tripTheme.join(", ")} — prioritize theme-matching attractions, note theme relevance in descriptions.`
+      : "";
 
-Available Attractions: ${attractionsList}
-Local Foods to Experience: ${foodsList}
-Recommended Areas: ${areasList}
+  const isShortTrip = input.numberOfDays <= 3;
 
-DAY PLANNING RULES (follow strictly):
-1. Day 1 (${input.startDate}): Arrival day from ${input.origin}. First activity = airport/station arrival & hotel check-in.
-   - SHORT TRIP (${input.numberOfDays} <= 3 days): Add 2-3 real activities after check-in — every hour counts on a short trip.
-   - LONGER TRIP (${input.numberOfDays} > 3 days): Keep it light, 1-2 activities after check-in since travelers need to settle in.
-2. Last Day (${input.endDate}): Departure day back to ${input.origin}. End with hotel checkout & airport/station transfer.
-   - SHORT TRIP (${input.numberOfDays} <= 3 days): Add 2-3 activities before departure — maximize the limited time.
-   - LONGER TRIP (${input.numberOfDays} > 3 days): 1-2 light morning activities before heading to the airport/station.
-3. Middle Days: MINIMUM 3 activities per day, ideally 4. Include at least 1 meal/food activity and 2 distinct attractions each day.
-4. ABSOLUTE MINIMUM: Every single day MUST have at least 2 activities. A day with 0 or 1 activity is INVALID and will be rejected.
-5. Space activities realistically — respect travel time between locations and recommended visit durations.
-6. Activity IDs must be globally unique across ALL days (activity_1, activity_2, activity_3 ... never reuse an ID).
-7. travelSegments reference activity IDs within the SAME day only.
-8. Use accurate GPS coordinates for all locations at the destination.
-9. COST ACCURACY — estimatedCostPerPerson for each activity MUST reflect the real entry fee, ticket price, or average meal cost. Use 0 ONLY if genuinely free.
-10. TRAVEL COST ACCURACY — travelSegments estimatedCost must be a realistic fare for that transport mode (e.g., taxi ride, auto-rickshaw, bus ticket cost). Use 0 only for walking segments.
-11. dailyEstimatedCostPerPerson = sum of ALL activity estimatedCostPerPerson + sum of ALL travelSegment estimatedCost for that day.
-12. totalEstimatedCostPerPerson = sum of ALL dailyEstimatedCostPerPerson values across every day.
+  return `You are a travel itinerary planner. OUTPUT ONLY VALID JSON. No markdown, no code fences, no extra text.
 
-Return ONLY this exact JSON structure:
+Trip: ${input.origin} → ${input.destination} | ${input.startDate} to ${input.endDate} | ${input.numberOfDays} days | ${input.numberOfPeople} people | ${input.currency}
+Season: ${input.weather.currentSeason} ${input.weather.temperatureRange}${themeSection}
+
+Attractions: ${attractionsList}
+Foods: ${foodsList}
+Areas: ${areasList}
+
+RULES:
+- Day 1 (${input.startDate}): Start with airport arrival + hotel check-in. Then ${isShortTrip ? "2-3 activities (short trip)" : "1-2 light activities"}.
+- Last day (${input.endDate}): End with checkout + airport transfer. Before that: ${isShortTrip ? "2-3 activities" : "1-2 morning activities"}.
+- Middle days: min 3 activities (ideally 4), at least 1 meal + 2 attractions.
+- Every day must have ≥2 activities.
+- Activity IDs globally unique across all days: activity_1, activity_2, activity_3...
+- travelSegments only reference IDs from the SAME day.
+- NEVER output null for fromActivityId or toActivityId — omit the segment instead.
+- All costs in ${input.currency}. estimatedCostPerPerson = real price (0 only if free).
+- travelSegment estimatedCost = realistic local fare (0 only for walking).
+- dailyEstimatedCostPerPerson = sum of activity costs + segment costs for that day.
+- totalEstimatedCostPerPerson = sum of all daily costs.
+
+JSON SCHEMA (return exactly this structure for all ${input.numberOfDays} days):
 {
   "startDate": "${input.startDate}",
   "endDate": "${input.endDate}",
   "totalDays": ${input.numberOfDays},
-  "days": [
-    {
-      "date": "YYYY-MM-DD",
-      "theme": "Descriptive theme name for the day",
-      "weatherNote": "Specific weather note for this day and any gear/preparation advice",
-      "activities": [
-        {
-          "id": "activity_1",
-          "name": "Activity name",
-          "description": "Engaging description of the experience and why it's worthwhile",
-          "type": "attraction",
-          "startTime": "09:00",
-          "endTime": "11:30",
-          "estimatedDurationMinutes": 150,
-          "location": {
-            "name": "Specific venue or place name",
-            "address": "Full street address at the destination",
-            "latitude": 0.0000,
-            "longitude": 0.0000
-          },
-          "estimatedCostPerPerson": 20,
-          "notes": "Practical tip (best time to visit, what to bring, booking advice, etc.)"
-        }
-      ],
-      "travelSegments": [
-        {
-          "fromActivityId": "activity_1",
-          "toActivityId": "activity_2",
-          "travelMode": "car",
-          "estimatedTravelTimeMinutes": 30,
-          "estimatedCost": 0
-        }
-      ],
-      "mealsIncluded": {
-        "breakfast": true,
-        "lunch": true,
-        "dinner": false
-      },
-      "dailyEstimatedCostPerPerson": 100
-    }
-  ],
-  "totalEstimatedCostPerPerson": 300
+  "days": [{
+    "date": "YYYY-MM-DD",
+    "theme": "string",
+    "weatherNote": "string",
+    "activities": [{
+      "id": "activity_N",
+      "name": "string",
+      "description": "string",
+      "type": "attraction|food|hotel|travel|leisure",
+      "startTime": "HH:MM",
+      "endTime": "HH:MM",
+      "estimatedDurationMinutes": 90,
+      "location": {"name": "string", "address": "string", "latitude": 0.0, "longitude": 0.0},
+      "estimatedCostPerPerson": 0,
+      "notes": "string"
+    }],
+    "travelSegments": [{
+      "fromActivityId": "activity_N",
+      "toActivityId": "activity_M",
+      "travelMode": "walk|car|bike|public_transport|flight",
+      "estimatedTravelTimeMinutes": 20,
+      "estimatedCost": 0
+    }],
+    "mealsIncluded": {"breakfast": true, "lunch": true, "dinner": false},
+    "dailyEstimatedCostPerPerson": 0
+  }],
+  "totalEstimatedCostPerPerson": 0
+}`;
 }
 
-STRICT ENUM RULES — violations will cause a parse error:
-- type MUST be exactly one of: attraction, food, hotel, travel, leisure
-- travelMode MUST be exactly one of: walk, car, bike, public_transport, flight
-- Dates MUST be in YYYY-MM-DD format and match the trip date range
-- Times MUST be in HH:MM 24-hour format`;
-}
+// ─── Agent ────────────────────────────────────────────────────────────────────
 
 export const itineraryAgent = {
   async run(input: ItineraryInput): Promise<ItineraryResult> {
-    const prompt = await generateItineraryPrompt(input);
-
+    const prompt = generateItineraryPrompt(input);
     const response = await model.generateContent(prompt);
+    const text = response.response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-    const text =
-      response.response.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const jsonStr = extractJson(text);
+    let parsed = JSON.parse(jsonStr);
 
-    // Extract JSON from response (handle markdown code blocks)
-    let jsonStr = text;
-    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1];
+    // Normalise enums
+    if (Array.isArray(parsed.days)) {
+      parsed.days = parsed.days.map((day: any) => ({
+        ...day,
+        activities: (day.activities ?? []).map((a: any) => ({
+          ...a,
+          type: normalizeActivityType(a.type ?? ""),
+        })),
+        travelSegments: (day.travelSegments ?? []).map((s: any) => ({
+          ...s,
+          travelMode: normalizeTravelMode(s.travelMode ?? ""),
+        })),
+      }));
     }
 
-    const parsed = JSON.parse(jsonStr);
+    // Sanitize nulls BEFORE ID enforcement and Zod validation
+    parsed = sanitizeNulls(parsed);
 
-    // Normalize enums before validation
-    if (parsed.days && Array.isArray(parsed.days)) {
-      parsed.days = parsed.days.map((day: any) => {
-        if (day.activities && Array.isArray(day.activities)) {
-          day.activities = day.activities.map((activity: any) => ({
-            ...activity,
-            type: normalizeActivityType(activity.type),
-          }));
-        }
-        if (day.travelSegments && Array.isArray(day.travelSegments)) {
-          day.travelSegments = day.travelSegments.map((segment: any) => ({
-            ...segment,
-            travelMode: normalizeTravelMode(segment.travelMode),
-          }));
-        }
-        return day;
-      });
-    }
+    // Enforce unique IDs
+    parsed = enforceUniqueActivityIds(parsed);
+
+    // Recalculate costs
+    parsed = correctCostMath(parsed);
 
     return ItineraryResultSchema.parse(parsed);
   },

@@ -61,5 +61,5 @@ export const AGENT_CONFIG = {
   temperature: 0.7, // Balanced creativity + determinism
   topP: 0.95,
   topK: 40,
-  maxOutputTokens: 8000,
+  maxOutputTokens: 20000,
 } as const;
