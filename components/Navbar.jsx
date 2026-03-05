@@ -13,14 +13,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
-import { setUserDetails, selectUserProfile } from "@/lib/redux/slices/userSlice";
+import {
+  setUserDetails,
+  selectUserProfile,
+} from "@/lib/redux/slices/userSlice";
 import { setChats } from "@/lib/redux/slices/chatsSlice";
+import { useRouter } from "next/navigation";
 
 const ProfileAvatar = ({}) => {
   const [mounted, setMounted] = useState(false);
   const userProfile = useSelector(selectUserProfile);
   const { name = "John Doe", profileImage = "" } = userProfile;
-
+    const router = useRouter();
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -63,6 +67,7 @@ const ProfileAvatar = ({}) => {
 function Navbar() {
   const { data: session } = useSession();
   const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     if (session) {
@@ -72,13 +77,15 @@ function Navbar() {
       const profileImage = session?.user?.image;
 
       // Store user details in Redux
-      dispatch(setUserDetails({
-        name: name || "",
-        email: email || "",
-        googleId: googleId || "",
-        profileImage: profileImage || "",
-        chats: [],
-      }));
+      dispatch(
+        setUserDetails({
+          name: name || "",
+          email: email || "",
+          googleId: googleId || "",
+          profileImage: profileImage || "",
+          chats: [],
+        }),
+      );
 
       try {
         // Also keep localStorage for backward compatibility
@@ -105,27 +112,32 @@ function Navbar() {
           if (response.ok) {
             const user = await response.json();
             // console.log("User saved or retrieved:", user);
-            
+
             // Fetch full user details including chats
-            const getUserDetailsResponse = await fetch("/api/get-user-details", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
+            const getUserDetailsResponse = await fetch(
+              "/api/get-user-details",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ email }),
               },
-              body: JSON.stringify({ email }),
-            });
+            );
 
             if (getUserDetailsResponse.ok) {
               const userDetails = await getUserDetailsResponse.json();
               // Update Redux with full user details including chats
-              dispatch(setUserDetails({
-                name: userDetails.name || "",
-                email: userDetails.email || "",
-                googleId: userDetails._id || "",
-                profileImage: profileImage || "",
-                chats: userDetails.history || [],
-              }));
-              
+              dispatch(
+                setUserDetails({
+                  name: userDetails.name || "",
+                  email: userDetails.email || "",
+                  googleId: userDetails._id || "",
+                  profileImage: profileImage || "",
+                  chats: userDetails.history || [],
+                }),
+              );
+
               // Fetch trip details using trip IDs from history
               if (userDetails.history && userDetails.history.length > 0) {
                 try {
@@ -143,8 +155,8 @@ function Navbar() {
                         .catch((err) => {
                           console.error(`Failed to fetch trip ${tripId}:`, err);
                           return null;
-                        })
-                    )
+                        }),
+                    ),
                   );
 
                   // Filter out null values (failed requests) and update Redux
@@ -209,11 +221,12 @@ function Navbar() {
               <Button
                 variant="default"
                 onClick={() => {
-                  const baseUrl =
-                    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-                  signIn("google", {
-                    callbackUrl: `${baseUrl}/create-trip`,
-                  });
+                  // const baseUrl =
+                  //   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+                  // signIn("google", {
+                  //   callbackUrl: `${baseUrl}/create-trip`,
+                  // });
+                  router.push("/login")
                 }}
               >
                 Sign Up
