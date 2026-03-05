@@ -2,16 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signIn, phoneNumber, useSession } from "@/lib/auth-client";
-
-const COUNTRY_CODES = [
-  { code: "+91", country: "IN", flag: "🇮🇳" },
-  { code: "+1",  country: "US", flag: "🇺🇸" },
-  { code: "+44", country: "GB", flag: "🇬🇧" },
-  { code: "+61", country: "AU", flag: "🇦🇺" },
-  { code: "+65", country: "SG", flag: "🇸🇬" },
-  { code: "+971", country: "AE", flag: "🇦🇪" },
-];
+import { signIn, emailOtp, useSession } from "@/lib/auth-client";
 
 const RESEND_COOLDOWN = 30;
 
@@ -25,9 +16,8 @@ function LoginPageInner({ redirectTo }) {
   }, [session]);
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const [step, setStep] = useState("phone");
-  const [countryCode, setCountryCode] = useState("+91");
-  const [phone, setPhone] = useState("");
+  const [step, setStep] = useState("email");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -41,8 +31,6 @@ function LoginPageInner({ redirectTo }) {
     const t = setTimeout(() => setResendTimer((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [resendTimer]);
-
-  const fullPhone = `${countryCode}${phone.replace(/\D/g, "")}`;
 
   // ── Google sign in ─────────────────────────────────────────────────────────
   async function handleGoogleSignIn() {
@@ -58,13 +46,12 @@ function LoginPageInner({ redirectTo }) {
   // ── Send OTP ───────────────────────────────────────────────────────────────
   async function handleSendOtp() {
     setError("");
-    const digits = phone.replace(/\D/g, "");
-    if (digits.length < 7) {
-      setError("Enter a valid phone number.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Enter a valid email address.");
       return;
     }
     setLoading(true);
-    const { error } = await phoneNumber.sendOtp({ phoneNumber: fullPhone });
+    const { error } = await emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     setLoading(false);
     if (error) {
       setError(error.message ?? "Failed to send OTP. Try again.");
@@ -108,10 +95,7 @@ function LoginPageInner({ redirectTo }) {
     }
     setError("");
     setLoading(true);
-    const { error } = await phoneNumber.verifyOtp({
-      phoneNumber: fullPhone,
-      code,
-    });
+    const { error } = await signIn.emailOtp({ email, otp: code });
     setLoading(false);
     if (error) {
       setError(error.message ?? "Invalid OTP. Please try again.");
@@ -157,32 +141,19 @@ function LoginPageInner({ redirectTo }) {
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
-        {/* Phone OTP flow */}
-        {step === "phone" ? (
+        {/* Email OTP flow */}
+        {step === "email" ? (
           <div className="space-y-4">
-            <p className="text-sm font-medium text-gray-700">Continue with phone number</p>
-            <div className="flex gap-2">
-              {/* Country code */}
-              <select
-                value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
-                className="border border-gray-300 rounded-xl px-3 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {COUNTRY_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.flag} {c.code}
-                  </option>
-                ))}
-              </select>
-              {/* Phone number */}
+            <p className="text-sm font-medium text-gray-700">Continue with email</p>
+            <div>
               <input
-                type="tel"
-                placeholder="Phone number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSendOtp()}
-                className="flex-1 border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                autoComplete="tel"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                autoComplete="email"
               />
             </div>
             {error && <p className="text-red-500 text-xs">{error}</p>}
@@ -199,7 +170,7 @@ function LoginPageInner({ redirectTo }) {
             <div>
               <p className="text-sm font-medium text-gray-700">Enter verification code</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                Sent to {countryCode} {phone}
+                Sent to {email}
               </p>
             </div>
 
@@ -230,13 +201,13 @@ function LoginPageInner({ redirectTo }) {
               {loading ? "Verifying..." : "Verify OTP"}
             </button>
 
-            {/* Resend + change number */}
+            {/* Resend + change email */}
             <div className="flex items-center justify-between text-xs text-gray-500">
               <button
-                onClick={() => { setStep("phone"); setError(""); setOtp(["","","","","",""]); }}
+                onClick={() => { setStep("email"); setError(""); setOtp(["","","","","",""]); }}
                 className="hover:text-indigo-600 transition"
               >
-                ← Change number
+                ← Change email
               </button>
               <button
                 onClick={handleResend}

@@ -35,9 +35,9 @@ const ProfileAvatar = ({}) => {
     .join("")
     .toUpperCase();
 
-  const handleLogout = () => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-    signOut({ callbackUrl: baseUrl });
+  const handleLogout = async () => {
+    await signOut();
+    router.push("/login");
   };
   return (
     <div>
