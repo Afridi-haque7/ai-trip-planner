@@ -6,7 +6,7 @@ import { BudgetOptions, MemberOptions } from "@/constants";
 import { Button } from "../ui/button";
 import Autocomplete from "react-google-autocomplete";
 import { toast } from "sonner";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
 import { useDispatch } from "react-redux";

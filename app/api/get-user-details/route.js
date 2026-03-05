@@ -1,13 +1,16 @@
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-import { getToken } from "next-auth/jwt";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function POST(request) {
   try {
-    const token = await getToken({ req: request });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
     // Verify user is authenticated
-    if (!token || !token.userId || !token.sub) {
+    if (!session?.user?.id) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { "Content-Type": "application/json" },
@@ -24,11 +27,19 @@ export async function POST(request) {
       });
     }
 
+    // Verify user can only request their own details
+    if (session.user.email !== email) {
+      return new Response(JSON.stringify({ error: "Forbidden - can only access own details" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     await dbConnect();
-    
-    // Fetch the authenticated user's details using MongoDB ID (not Google ID)
-    const authenticatedUser = await User.findById(token.userId || token.sub);
-    
+
+    // Fetch user from your existing User model
+    const authenticatedUser = await User.findOne({ email: session.user.email });
+
     if (!authenticatedUser) {
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
@@ -36,16 +47,7 @@ export async function POST(request) {
       });
     }
 
-    // Verify user can only request their own details
-    if (authenticatedUser.email !== email) {
-      return new Response(JSON.stringify({ error: "Forbidden - can only access own details" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Return user details
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       _id: authenticatedUser._id,
       name: authenticatedUser.name,
       email: authenticatedUser.email,

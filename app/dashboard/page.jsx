@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 import { useSelector } from 'react-redux';
 import { selectUserProfile } from '@/lib/redux/slices/userSlice';
 

@@ -17,7 +17,7 @@ import {
 } from "motion/react";
 import { redirectIfUnauthenticated } from "@/app/helper";
 import { useRef, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 
 export const FloatingDock = ({ items, desktopClassName, mobileClassName }) => {

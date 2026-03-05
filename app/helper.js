@@ -1,4 +1,4 @@
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 import crypto from "crypto";
 
 // Function to generate a unique tripId

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 
 const Stats = ({ data, query, className, iconClassName }) => {
   const { data: session } = useSession();

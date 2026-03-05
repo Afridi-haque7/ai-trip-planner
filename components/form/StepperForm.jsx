@@ -4,7 +4,7 @@ import { useContext, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
-import { useSession, signIn } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { setTripContext, setLoadingTripGeneration, setTripError } from "@/lib/redux/slices/tripSlice";

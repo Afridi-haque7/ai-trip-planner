@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn, signOut } from "@/lib/auth-client";
 import { LiquidGlassCard } from "@/components/liquid-glass";
 import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
 import {

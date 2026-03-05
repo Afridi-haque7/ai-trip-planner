@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { ReactLenis } from "lenis/react";
 import dynamic from "next/dynamic";
 import { ArrowRight } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "@/lib/auth-client";
 const TypewriterEffectSmooth = dynamic(() =>
   import("@/components/ui/typewriter-effect.jsx")
 );
