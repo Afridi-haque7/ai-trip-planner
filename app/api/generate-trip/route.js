@@ -1,6 +1,12 @@
+export const runtime = "nodejs";
+
 import { runTripPipeline, getPipelineStatus } from "@/lib/adk/orchestrator";
 import { TripInputSchema } from "@/lib/adk/schemas";
 import dbConnect from "@/lib/dbConnect";
+import User from "@/models/User";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { checkAndIncrementUsage } from "@/lib/usageGate";
 
 /**
  * POST /api/generate-trip
@@ -28,6 +34,15 @@ import dbConnect from "@/lib/dbConnect";
 
 export async function POST(request) {
   try {
+    // ── 1. Authentication ──────────────────────────────────────────────────────
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.email) {
+      return Response.json(
+        { success: false, error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json();
 
     // Validate request body
@@ -75,6 +90,40 @@ export async function POST(request) {
       budget: tripInput.budgetLevel,
       currency: tripInput.currency,
     });
+
+    // ── 2. Usage gate — must happen BEFORE the pipeline to prevent cost ────────
+    await dbConnect();
+    const dbUser = await User.findOne(
+      { email: session.user.email },
+      { _id: 1 }
+    ).lean();
+    if (!dbUser) {
+      return Response.json(
+        { success: false, error: "User account not found" },
+        { status: 404 }
+      );
+    }
+
+    const usage = await checkAndIncrementUsage(dbUser._id);
+    if (!usage.allowed) {
+      console.warn("[API] Monthly limit reached for user:", session.user.email, usage);
+      return Response.json(
+        {
+          success: false,
+          error: "Monthly trip limit reached",
+          details: {
+            used: usage.used,
+            limit: usage.limit,
+            message: `You have used all ${usage.limit} trips allowed on your plan this month. Upgrade or wait until next month.`,
+          },
+        },
+        { status: 429 }
+      );
+    }
+
+    console.log(
+      `[API] Usage gate passed for ${session.user.email}: ${usage.used}/${usage.limit} this month`
+    );
 
     // Run the orchestrator pipeline
     const result = await runTripPipeline(tripInput);

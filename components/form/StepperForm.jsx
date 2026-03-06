@@ -77,7 +77,7 @@ export default function StepperForm() {
 
   const handleFinish = async () => {
     if (!session) {
-      return signIn("google", { callbackUrl: window.location.href });
+      return router.push("/login?redirect=/dashboard");
     }
 
     setIsLoading(true);

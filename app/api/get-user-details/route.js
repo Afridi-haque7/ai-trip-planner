@@ -52,8 +52,10 @@ export async function POST(request) {
       name: authenticatedUser.name,
       email: authenticatedUser.email,
       history: authenticatedUser.history || [],
-      subscriptionPlan: authenticatedUser.subscriptionPlan || "Free",
+      subscriptionPlan: authenticatedUser.subscriptionPlan || "free",
       subscriptionEndDate: authenticatedUser.subscriptionEndDate || null,
+      monthlyTripCount: authenticatedUser.monthlyTripCount ?? 0,
+      usageResetMonth: authenticatedUser.usageResetMonth ?? "",
     }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

@@ -1,4 +1,3 @@
-import { useSession, signIn } from "@/lib/auth-client";
 import crypto from "crypto";
 
 // Function to generate a unique tripId
@@ -18,11 +17,8 @@ export const checkAuthentication = (session, router) => {
 // Function to redurect unauthenticated users
 export const redirectIfUnauthenticated = async (session, router) => {
   const tripId = generateTripId();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   if (!session) {
-    await signIn("google", {
-      callbackUrl: `${baseUrl}/create-trip/${tripId}`,
-    });
+    router.push("/login?redirect=/dashboard");
     return;
   }
   try {

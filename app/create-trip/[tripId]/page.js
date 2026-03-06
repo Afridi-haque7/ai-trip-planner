@@ -2,12 +2,10 @@
 
 import StepperForm from "@/components/form/StepperForm";
 import { TripFormProvider } from "@/components/form/TripFormContext";
-import { useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 
 const CreateTrip = () => {
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id") || "default"; // Fallback if id
-  // const {id} = params;    // some issue is there
+  const { tripId } = useParams();
   return (
     <div className="w-full flex justify-center items-center py-4 px-4 lg:px-2 min-h-screen">
       <main className="mt-24 w-full max-w-4xl mb-16">
