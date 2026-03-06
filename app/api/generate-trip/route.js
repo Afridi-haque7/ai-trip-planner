@@ -35,6 +35,7 @@ import { checkAndIncrementUsage } from "@/lib/usageGate";
 
 export async function POST(request) {
   try {
+    const auth = await getAuth();
     // ── 1. Authentication ──────────────────────────────────────────────────────
     const session = await auth.api.getSession({ headers: await headers() });
     if (!session?.user?.email) {

@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 
 export async function POST(request) {
   try {
+    const auth = await getAuth();
     const session = await auth.api.getSession({
       headers: await headers(),
     });

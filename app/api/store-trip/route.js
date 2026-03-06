@@ -8,6 +8,7 @@ import { headers } from "next/headers";
 import crypto from "crypto";
 
 export async function POST(request) {
+  const auth = await getAuth();
   const session = await auth.api.getSession({
     headers: await headers(),
   });
