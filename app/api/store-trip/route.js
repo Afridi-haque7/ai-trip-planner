@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import dbConnect from "@/lib/dbConnect";
 import Trip from "@/models/Trip";
@@ -13,7 +13,6 @@ export async function POST(request) {
     headers: await headers(),
   });
 
-  // Verify user is authenticated
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
@@ -21,17 +20,8 @@ export async function POST(request) {
     });
   }
 
-  const { userId, tripContext } = await request.json();
+  const { tripContext } = await request.json(); // ← removed userId from destructure
 
-  // Verify the authenticated user matches the userId in request
-  if (userId !== session.user.id) {
-    return new Response(JSON.stringify({ error: "Forbidden: Cannot store trip for another user" }), {
-      status: 403,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  // Validate input
   if (!tripContext || typeof tripContext !== "object") {
     return new Response(JSON.stringify({ error: "Invalid trip context" }), {
       status: 400,
@@ -42,14 +32,7 @@ export async function POST(request) {
   try {
     await dbConnect();
 
-    console.log("[Store Trip] Request received:", {
-      userId,
-      tripContextInput: tripContext?.input,
-      hasExistingTripId: !!tripContext?.tripId,
-    });
-
-    // Verify user exists — look up by email since Better Auth user IDs
-    // won't match your existing Mongoose User model's _id values
+    // Session email is the source of truth — no need to trust client-sent userId
     const userExists = await User.findOne({ email: session.user.email });
     if (!userExists) {
       return new Response(JSON.stringify({ error: "User not found" }), {
@@ -58,80 +41,72 @@ export async function POST(request) {
       });
     }
 
-    // Generate trip ID if not present
     const tripId = tripContext.tripId || crypto.randomUUID();
 
-    console.log("[Store Trip] Generated/using tripId:", tripId);
-
-    // Check for duplicate trips
     const existingTrip = await Trip.findOne({ tripId });
     if (existingTrip) {
-      console.warn("[Store Trip] Trip with this ID already exists:", tripId);
-      return new Response(JSON.stringify({
-        success: true,
-        tripId: existingTrip.tripId,
-        _id: existingTrip._id,
-        message: "Trip already exists"
-      }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          tripId: existingTrip.tripId,
+          _id: existingTrip._id,
+          message: "Trip already exists",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
-    // Create new trip
-    console.log("[Store Trip] Creating new trip document with tripId:", tripId);
     const newTrip = new Trip({
       tripId,
-      userId: userExists._id, // use Mongoose _id, not Better Auth user ID
+      userId: userExists._id,
       ...tripContext,
     });
 
     const savedTrip = await newTrip.save();
-    console.log("[Store Trip] Trip saved with _id:", savedTrip._id);
 
-    // Store tripId in user history
-    const updatedUser = await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
       userExists._id,
       { $push: { history: newTrip.tripId } },
-      { new: true }
+      { new: true },
     );
-    console.log("[Store Trip] User history updated. User now has", updatedUser.history.length, "trips");
 
-    console.log("[Store Trip] Trip saved successfully:", {
-      tripId,
-      destination: tripContext.input?.destination,
-      userId: userExists._id,
-      mongoId: newTrip._id,
-      timestamp: new Date().toISOString(),
-    });
-
-    return new Response(JSON.stringify({
-      success: true,
-      tripId: newTrip.tripId,
-      _id: newTrip._id,
-      message: "Trip saved successfully"
-    }), {
-      status: 201,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        tripId: newTrip.tripId,
+        _id: savedTrip._id,
+        message: "Trip saved successfully",
+      }),
+      {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   } catch (error) {
-    console.error("[Store Trip] Error storing trip:", {
-      message: error.message,
-      code: error.code,
-      timestamp: new Date().toISOString(),
-    });
+    console.error("[Store Trip] Error:", error.message);
 
     if (error.code === 11000) {
-      console.error("[Store Trip] Duplicate tripId detected");
-      return new Response(JSON.stringify({ error: "Trip with this ID already exists" }), {
-        status: 409,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Trip with this ID already exists" }),
+        {
+          status: 409,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     }
 
-    return new Response(JSON.stringify({ error: "Internal Server Error", details: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "Internal Server Error",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
 }
