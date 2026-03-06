@@ -1,4 +1,5 @@
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 import { runTripPipeline, getPipelineStatus } from "@/lib/adk/orchestrator";
 import { TripInputSchema } from "@/lib/adk/schemas";

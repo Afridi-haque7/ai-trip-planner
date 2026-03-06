@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import dbConnect from "@/lib/dbConnect";
 import Trip from "@/models/Trip";
 import User from "@/models/User";
