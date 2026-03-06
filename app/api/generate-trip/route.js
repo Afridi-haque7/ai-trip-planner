@@ -5,7 +5,7 @@ import { runTripPipeline, getPipelineStatus } from "@/lib/adk/orchestrator";
 import { TripInputSchema } from "@/lib/adk/schemas";
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { checkAndIncrementUsage } from "@/lib/usageGate";
 

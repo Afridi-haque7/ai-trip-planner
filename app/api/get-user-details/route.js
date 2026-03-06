@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import dbConnect from "@/lib/dbConnect";
 import User from "@/models/User";
-import { auth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 export async function POST(request) {
