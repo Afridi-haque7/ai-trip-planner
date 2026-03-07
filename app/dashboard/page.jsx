@@ -2,7 +2,8 @@
 
 import { useSession } from "@/lib/auth-client";
 import { useSelector } from "react-redux";
-import { selectUserProfile } from "@/lib/redux/slices/userSlice";
+import { selectUserProfile, selectSubscriptionDetails, selectIsUserInitialized } from "@/lib/redux/slices/userSlice";
+import { selectAllChats } from "@/lib/redux/slices/chatsSlice";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -157,15 +158,10 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const { name = "", profileImage = "" } = useSelector(selectUserProfile);
+  const { subscriptionPlan, subscriptionEndDate, monthlyTripCount } = useSelector(selectSubscriptionDetails);
+  const trips = useSelector(selectAllChats);
+  const isInitialized = useSelector(selectIsUserInitialized);
 
-  const [userDetails, setUserDetails] = useState({
-    subscriptionPlan: "free",
-    subscriptionEndDate: null,
-    tripCount: 0,
-    monthlyUsed: 0,
-  });
-  const [trips, setTrips] = useState([]);
-  const [tripsLoading, setTripsLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(3);
 
   // Redirect unauthenticated users
@@ -175,78 +171,13 @@ export default function Dashboard() {
     }
   }, [status, router]);
 
-  // Fetch user details then all trip data
-  useEffect(() => {
-    if (!session?.user?.email) return;
-
-    let cancelled = false;
-
-    const run = async () => {
-      try {
-        const res = await fetch("/api/get-user-details", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: session.user.email }),
-        });
-
-        if (!res.ok) {
-          if (!cancelled) setTripsLoading(false);
-          return;
-        }
-
-        const data = await res.json();
-        if (cancelled) return;
-
-        const tripIds = data.history || [];
-        setUserDetails({
-          subscriptionPlan: data.subscriptionPlan || "free",
-          subscriptionEndDate: data.subscriptionEndDate || null,
-          tripCount: tripIds.length,
-          monthlyUsed: data.monthlyTripCount ?? 0,
-        });
-
-        if (tripIds.length === 0) {
-          setTripsLoading(false);
-          return;
-        }
-
-        // Fetch each trip in parallel
-        const results = await Promise.allSettled(
-          tripIds.map((id) =>
-            fetch("/api/get-trip", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ tripid: id }),
-            }).then((r) => (r.ok ? r.json() : null))
-          )
-        );
-
-        if (cancelled) return;
-
-        const fetched = results
-          .filter((r) => r.status === "fulfilled" && r.value !== null)
-          .map((r) => r.value);
-        setTrips(fetched);
-      } catch (e) {
-        console.error("Dashboard data fetch error:", e);
-      } finally {
-        if (!cancelled) setTripsLoading(false);
-      }
-    };
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [session]);
-
   const handleNewTrip = () => router.push(`/create-trip/${crypto.randomUUID()}`);
 
-  const planLimit = PLAN_LIMITS[userDetails.subscriptionPlan] ?? 2;
-  const usagePercent = Math.min((userDetails.monthlyUsed / planLimit) * 100, 100);
+  const planLimit = PLAN_LIMITS[subscriptionPlan] ?? 2;
+  const usagePercent = Math.min((monthlyTripCount / planLimit) * 100, 100);
   const planLabel =
-    userDetails.subscriptionPlan.charAt(0).toUpperCase() +
-    userDetails.subscriptionPlan.slice(1);
+    subscriptionPlan.charAt(0).toUpperCase() + subscriptionPlan.slice(1);
+  const tripCount = trips.length;
 
   const navItems = [
     { Icon: MapPin, label: "My Trips", href: "/dashboard", active: true, disabled: false },
@@ -332,7 +263,7 @@ export default function Dashboard() {
                   Monthly Usage
                 </span>
                 <span className="text-xs font-bold">
-                  {userDetails.monthlyUsed}/{planLimit} this month
+                  {monthlyTripCount}/{planLimit} this month
                 </span>
               </div>
               <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
@@ -354,7 +285,7 @@ export default function Dashboard() {
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-card p-4 rounded-xl border border-border shadow-sm flex flex-col items-center justify-center text-center">
-              <span className="text-2xl font-bold">{userDetails.tripCount}</span>
+              <span className="text-2xl font-bold">{tripCount}</span>
               <span className="text-xs text-muted-foreground font-medium mt-0.5">
                 Total Trips
               </span>
@@ -379,7 +310,7 @@ export default function Dashboard() {
           </div>
 
           {/* Trip Grid / Skeleton / Empty */}
-          {tripsLoading ? (
+          {!isInitialized && status !== "unauthenticated" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               <TripCardSkeleton />
               <TripCardSkeleton />

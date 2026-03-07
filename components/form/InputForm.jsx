@@ -9,8 +9,9 @@ import { toast } from "sonner";
 import { useSession, signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setTripContext, setLoadingTripGeneration, setTripError } from "@/lib/redux/slices/tripSlice";
+import { selectUserId } from "@/lib/redux/slices/userSlice";
 
 // Currency options
 const CURRENCY_OPTIONS = [
@@ -40,45 +41,12 @@ function InputForm() {
     members: null,
     currency: "USD",
   });
-  const [userId, setUserId] = useState(null);
   const key = process.env.NEXT_PUBLIC_GOOGLE_PLACE_API_KEY;
   const router = useRouter();
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    if (session) {
-      const fetchUserId = async () => {
-        const email = session.user.email;
-
-        try {
-          // Fetch the user's _id from MongoDB
-          const response = await fetch("/api/get-user-id", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email }),
-          });
-
-          if (response.ok) {
-            const user = await response.json();
-            const user_id = user._id;
-            setUserId(user_id);
-
-            // router.push(`/create-trip/${user_id}`);
-          } else {
-            console.error("Failed to fetch user ID");
-          }
-        } catch (error) {
-          console.error("Error fetching user ID:", error);
-        }
-      };
-
-      fetchUserId();
-    }
-  }, [session, router]);
+  const userId = useSelector(selectUserId);
 
   const handleFormSubmit = async (event) => {
     event.preventDefault();

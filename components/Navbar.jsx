@@ -15,9 +15,11 @@ import {
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
 import {
   setUserDetails,
+  setUserInitialized,
+  clearUser,
   selectUserProfile,
 } from "@/lib/redux/slices/userSlice";
-import { setChats } from "@/lib/redux/slices/chatsSlice";
+import { setChats, clearChats } from "@/lib/redux/slices/chatsSlice";
 import { useRouter } from "next/navigation";
 
 const ProfileAvatar = ({}) => {
@@ -35,7 +37,11 @@ const ProfileAvatar = ({}) => {
     .join("")
     .toUpperCase();
 
+  const dispatch = useDispatch();
+
   const handleLogout = async () => {
+    dispatch(clearUser());
+    dispatch(clearChats());
     await signOut();
     router.push("/login");
   };
@@ -70,117 +76,86 @@ function Navbar() {
   const router = useRouter();
 
   useEffect(() => {
-    if (session) {
-      const name = session?.user?.name;
-      const email = session?.user?.email;
-      const googleId = session?.user?.googleId;
-      const profileImage = session?.user?.image;
+    if (!session) return;
 
-      // Store user details in Redux
-      dispatch(
-        setUserDetails({
-          name: name || "",
-          email: email || "",
-          googleId: googleId || "",
-          profileImage: profileImage || "",
-          chats: [],
-        }),
-      );
+    const name = session?.user?.name;
+    const email = session?.user?.email;
+    const googleId = session?.user?.googleId;
+    const profileImage = session?.user?.image;
 
+    const initializeUser = async () => {
       try {
-        // Also keep localStorage for backward compatibility
-        if (name) localStorage?.setItem("name", name);
-        if (email) localStorage?.setItem("email", email);
-        if (googleId) localStorage?.setItem("googleId", googleId);
-        if (profileImage) localStorage?.setItem("profileImage", profileImage);
+        // Upsert user in DB on every login
+        const signUpRes = await fetch("/api/sign-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email }),
+        });
 
-        // console.log("User data saved to localStorage");
-      } catch (error) {
-        console.error("Error saving user data to localStorage:", error.message);
-      }
-      // API route
-      const saveUser = async () => {
-        try {
-          const response = await fetch("/api/sign-up", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ name, email }),
-          });
-
-          if (response.ok) {
-            const user = await response.json();
-            // console.log("User saved or retrieved:", user);
-
-            // Fetch full user details including chats
-            const getUserDetailsResponse = await fetch(
-              "/api/get-user-details",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email }),
-              },
-            );
-
-            if (getUserDetailsResponse.ok) {
-              const userDetails = await getUserDetailsResponse.json();
-              // Update Redux with full user details including chats
-              dispatch(
-                setUserDetails({
-                  name: userDetails.name || "",
-                  email: userDetails.email || "",
-                  googleId: userDetails._id || "",
-                  profileImage: profileImage || "",
-                  chats: userDetails.history || [],
-                }),
-              );
-
-              // Fetch trip details using trip IDs from history
-              if (userDetails.history && userDetails.history.length > 0) {
-                try {
-                  // Fetch all trip details for user's chats
-                  const allTrips = await Promise.all(
-                    userDetails.history.map((tripId) =>
-                      fetch("/api/get-trip", {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({ tripid: tripId }),
-                      })
-                        .then((res) => res.json())
-                        .catch((err) => {
-                          console.error(`Failed to fetch trip ${tripId}:`, err);
-                          return null;
-                        }),
-                    ),
-                  );
-
-                  // Filter out null values (failed requests) and update Redux
-                  const validTrips = allTrips.filter((trip) => trip !== null);
-                  dispatch(setChats(validTrips));
-                } catch (error) {
-                  console.error("Error fetching trip details:", error);
-                  dispatch(setChats([]));
-                }
-              } else {
-                // No trips, set empty chats array
-                dispatch(setChats([]));
-              }
-            }
-          } else {
-            console.error("Failed to save user");
-          }
-        } catch (error) {
-          console.error("Error in saveUser:", error);
+        if (!signUpRes.ok) {
+          console.error("Failed to save user during sign-up");
+          return;
         }
-      };
 
-      saveUser();
-    }
+        // Fetch full user details (subscription, history, _id)
+        const detailsRes = await fetch("/api/get-user-details", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!detailsRes.ok) {
+          console.error("Failed to fetch user details");
+          return;
+        }
+
+        const userDetails = await detailsRes.json();
+
+        // Store complete user profile in Redux
+        dispatch(
+          setUserDetails({
+            _id: userDetails._id || "",
+            name: userDetails.name || "",
+            email: userDetails.email || "",
+            googleId: googleId || "",
+            profileImage: profileImage || "",
+            chats: userDetails.history || [],
+            subscriptionPlan: userDetails.subscriptionPlan || "free",
+            subscriptionEndDate: userDetails.subscriptionEndDate || null,
+            monthlyTripCount: userDetails.monthlyTripCount ?? 0,
+          }),
+        );
+
+        // Fetch all trips and store in Redux
+        const tripIds = userDetails.history || [];
+        if (tripIds.length > 0) {
+          const allTrips = await Promise.all(
+            tripIds.map((tripId) =>
+              fetch("/api/get-trip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tripid: tripId }),
+              })
+                .then((res) => (res.ok ? res.json() : null))
+                .catch((err) => {
+                  console.error(`Failed to fetch trip ${tripId}:`, err);
+                  return null;
+                }),
+            ),
+          );
+          dispatch(setChats(allTrips.filter(Boolean)));
+        } else {
+          dispatch(setChats([]));
+        }
+
+        // Mark user data as fully loaded
+        dispatch(setUserInitialized(true));
+      } catch (error) {
+        console.error("Error initializing user data:", error);
+      }
+    };
+
+    initializeUser();
   }, [session, dispatch]);
 
   return (

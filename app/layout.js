@@ -31,31 +31,31 @@ export default function RootLayout({ children }) {
           }}
         />
       </head>
-      <ReduxProvider>
-        <AuthProvider>
-        <body
-          className={inter.className}
-          style={{
-            margin: 0,
-            padding: 0,
-            width: "100%",
-          }}
-        >
-          <div className="relative min-h-screen w-full bg-background m-0 p-0">
-            <Navbar />
-            <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2">
-              <FloatingDock
-                items={links}
-                desktopClassName={`bg-transparent backdrop-blur-sm`}
-                mobileClassName={`backdrop-blur-sm`}
-              />
+      <body
+        className={inter.className}
+        style={{
+          margin: 0,
+          padding: 0,
+          width: "100%",
+        }}
+      >
+        <ReduxProvider>
+          <AuthProvider>
+            <div className="relative min-h-screen w-full bg-background m-0 p-0">
+              <Navbar />
+              <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2">
+                <FloatingDock
+                  items={links}
+                  desktopClassName={`bg-transparent backdrop-blur-sm`}
+                  mobileClassName={`backdrop-blur-sm`}
+                />
+              </div>
+              <main>{children}</main>
+              <Toaster closeButton />
             </div>
-            <main>{children}</main>
-            <Toaster closeButton />
-          </div>
-        </body>
-      </AuthProvider>
-      </ReduxProvider>
+          </AuthProvider>
+        </ReduxProvider>
+      </body>
     </html>
   );
 }

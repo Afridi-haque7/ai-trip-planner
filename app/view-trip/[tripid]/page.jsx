@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import Error from "@/components/Error";
 import TripResultADK from "@/components/form/TripResultADK";
 import { setTripContext } from "@/lib/redux/slices/tripSlice";
+import { selectChatByTripId } from "@/lib/redux/slices/chatsSlice";
+import { selectIsUserInitialized } from "@/lib/redux/slices/userSlice";
 import confetti from "canvas-confetti";
 export const dynamic = "force-dynamic";
 
 export default function ViewTrip() {
   const params = useParams();
   const tripid = params.tripid;
-  const [trip, setTrip] = useState(null);
-  const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
+  const isInitialized = useSelector(selectIsUserInitialized);
+  const trip = useSelector(selectChatByTripId(tripid));
 
   const handleClick = useCallback(() => {
     const end = Date.now() + 3 * 1000; // 3 seconds
@@ -51,34 +53,12 @@ export default function ViewTrip() {
   }, [tripid]);
 
   useEffect(() => {
-    const fetchTrip = async () => {
-      try {
-        const response = await fetch("/api/get-trip", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ tripid }),
-        });
+    if (trip) {
+      dispatch(setTripContext(trip));
+    }
+  }, [trip, dispatch]);
 
-        if (response.ok) {
-          const tripData = await response.json();
-          setTrip(tripData);
-          // Store trip context in Redux state
-          dispatch(setTripContext(tripData));
-        } else {
-          console.error("Failed to fetch trip data");
-        }
-      } catch (error) {
-        console.error("Unable to fetch trip details", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTrip();
-  }, [tripid, dispatch]);
-
-  if (loading) {
+  if (!isInitialized) {
     return (
       <div className="mt-32 text-center text-2xl">Loading trip details...</div>
     );
