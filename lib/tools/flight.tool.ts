@@ -311,7 +311,7 @@ const USD_TO: Record<string, number> = {
 };
 
 function convertFromUSD(amountUSD: number, currency: string): number {
-  const rate = USD_TO[currency.toUpperCase()] ?? 1;
+  const rate = USD_TO[(currency || "INR")?.toUpperCase()] ?? 1;
   const converted = amountUSD * rate;
   // Round to a "clean" number based on currency magnitude
   if (rate >= 1000) return Math.round(converted / 500) * 500;   // IDR, VND

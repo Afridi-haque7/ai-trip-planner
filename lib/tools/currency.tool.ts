@@ -90,7 +90,7 @@ async function fetchLiveRates(): Promise<Record<string, number> | null> {
 async function getUsdRate(
   currency: string
 ): Promise<{ rate: number; source: "live" | "fallback" }> {
-  const code = currency.toUpperCase();
+  const code = (currency || "INR")?.toUpperCase();
 
   const live = await fetchLiveRates();
   if (live?.[code] !== undefined) {
@@ -117,8 +117,8 @@ export async function convertCurrency(
   fromCurrency: string,
   toCurrency: string
 ): Promise<number> {
-  const from = fromCurrency.toUpperCase();
-  const to = toCurrency.toUpperCase();
+  const from = (fromCurrency || "USD")?.toUpperCase();
+  const to = (toCurrency || "INR")?.toUpperCase();
 
   if (from === to) return amount;
 
@@ -142,8 +142,8 @@ export async function getCurrencyConversionDetail(
   fromCurrency: string,
   toCurrency: string
 ): Promise<ConvertedCost | null> {
-  const from = fromCurrency.toUpperCase();
-  const to = toCurrency.toUpperCase();
+  const from = (fromCurrency || "USD")?.toUpperCase();
+  const to = (toCurrency || "INR")?.toUpperCase();
 
   const [fromData, toData] = await Promise.all([
     getUsdRate(from),
@@ -176,7 +176,7 @@ export async function warmRateCache(): Promise<void> {
  * Check if a currency is supported (live or fallback).
  */
 export async function isCurrencySupported(currencyCode: string): Promise<boolean> {
-  const code = currencyCode.toUpperCase();
+  const code = currencyCode?.toUpperCase();
   const live = await fetchLiveRates();
   return !!(live?.[code] ?? FALLBACK_RATES_FROM_USD[code]);
 }
@@ -189,8 +189,8 @@ export function convertCurrencySync(
   fromCurrency: string,
   toCurrency: string
 ): number {
-  const from = fromCurrency.toUpperCase();
-  const to = toCurrency.toUpperCase();
+  const from = (fromCurrency || "USD")?.toUpperCase();
+  const to = (toCurrency || "INR")?.toUpperCase();
   if (from === to) return amount;
 
   const fromRate = FALLBACK_RATES_FROM_USD[from] ?? 1;
