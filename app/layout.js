@@ -53,12 +53,12 @@ export default function RootLayout({ children }) {
               </div>
               <main>
                 {children}
-                <Analytics />
               </main>
               <Toaster closeButton />
             </div>
           </AuthProvider>
         </ReduxProvider>
+        <Analytics />
       </body>
     </html>
   );
