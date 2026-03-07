@@ -1,35 +1,50 @@
+export const dynamic = 'force-dynamic';
+
 import dbConnect from '@/lib/dbConnect'
 import User from '@/models/User'
 
 export async function POST(request) {
     const { name, email } = await request.json();
 
+    // Validate input
+    if (!name || !email || typeof name !== "string" || typeof email !== "string") {
+      return new Response(JSON.stringify({ error: "Invalid name or email" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json'}
+      });
+    }
+
+    if (!email.includes("@")) {
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json'}
+      });
+    }
+
     try {
       await dbConnect(); // Connect to MongoDB
 
-      // Check if the user already exists
-      const existingUser = await User.findOne({ email });
+      // Use atomic findOneAndUpdate to prevent race conditions
+      const user = await User.findOneAndUpdate(
+        { email },
+        {
+          $setOnInsert: {
+            name,
+            email,
+            history: [],
+          }
+        },
+        {
+          upsert: true,
+          new: true,
+          runValidators: true
+        }
+      );
 
-      if (existingUser) {
-        // User exists, return the user
-        return new Response(JSON.stringify(existingUser), {
-            status: 200,
-            headers: { 'Content-Type': 'application/json'}
-        });
-      } else {
-        // User does not exist, create a new user
-        const newUser = new User({
-          name,
-          email,
-          history: [], // Initialize history as an empty array
-        });
-
-        await newUser.save(); // Save the new user to the database
-        return new Response(JSON.stringify(newUser), {
-          status: 201,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
+      return new Response(JSON.stringify(user), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json'}
+      });
     } catch (error) {
       console.error("Error saving user:", error);
       return new Response(JSON.stringify({ error: "Internal Server Error" }), {

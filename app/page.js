@@ -1,65 +1,28 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Loader2Icon } from "lucide-react";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import crypto from "crypto";
+import dynamic from "next/dynamic";
+import { ReactLenis, useLenis } from "lenis/react";
+
+const HeroSection = dynamic(() => import("@/components/HeroSection"));
+const FeaturesSeaction = dynamic(() => import("@/components/Features.jsx"));
+const Footer = dynamic(() => import("@/components/Footer.jsx"));
 
 export default function Home() {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  // handle button click
-  const handleGetStarted = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    // generate an unique trip id
-    const tripId = crypto.randomBytes(16).toString("hex");
-    // route user to create trip with specific trip id
-    router.push(`/create-trip/${tripId}`);
-  };
-
   return (
-    <div className="w-full flex justify-center itemms-center py-4 px-4 lg:px-2">
-      <div
-        className="relative mt-10 inset-0 lg:mx-auto bg-[url('/iphone.png')] md:bg-[url('/macbook.png')] 
-      bg-cover bg-center w-[700px] h-[725px] lg:w-[900px] lg:h-[800px] flex text-center justify-center items-center flex-wrap overflow-hidden"
-      >
-        <div className="w-[300px] md:w-full text-center px-4 md:px-24 md:py-4 flex flex-col justify-center items-center">
-          <h1 className=" text-2xl md:text-3xl lg:text-5xl font-bold text-center flex flex-col">
-            <span className="bg-gradient-to-r from-pink-500 via-red-500 to-orange-500 bg-clip-text text-transparent">
-              Discover Your Next Adventure With AI:
-            </span>
-            <br />
-            <span>Personalized Itineraries at Your Fingertips </span>
-          </h1>
-          <p className="text-center mx-auto px-2 mt-10 text-sm text-gray-500">
-            Your personal trip planner and travel curator, creating custom
-            itineraries tailored as per your preferences
-          </p>
-          <div className="flex justify-center items-center mt-10 flex-wrap">
-            {isLoading ? (
-              <Button size="lg" disabled>
-                <Loader2Icon className="animate-spin" />
-                Please wait
-              </Button>
-            ) : (
-              <Button
-                variant="default"
-                // className="text-lg font-semibold px-8 py-6 rounded-xl cursor-pointer"
-                size="lg"
-                onClick={handleGetStarted}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleGetStarted(e);
-                  }
-                }}
-              >
-                Get Started
-              </Button>
-            )}
-          </div>
+    <>
+      <ReactLenis root />
+      <div className="w-full flex flex-col justify-center items-center">
+        <div className="absolute bottom-0 left-0 right-0 top-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:54px_54px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
+
+        <div className="w-full flex justify-center items-center mt-56 ">
+          <HeroSection />
+        </div>
+        <div className="w-full flex justify-center items-center">
+          <FeaturesSeaction />
+        </div>
+        <div className="w-full mt-12">
+          <Footer />
         </div>
       </div>
-    </div>
+    </>
   );
 }

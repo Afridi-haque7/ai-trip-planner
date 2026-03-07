@@ -3,8 +3,10 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 import AuthProvider from "@/context/AuthProvider";
-import { GoogleOAuthProvider } from "@react-oauth/google";
-
+import { ReduxProvider } from "@/lib/redux/ReduxProvider";
+import { FloatingDock } from "@/components/ui/floating-dock";
+import { links } from "@/constants";
+import { Analytics } from "@vercel/analytics/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -14,16 +16,50 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <AuthProvider>
-        <body className={inter.className}>
-          <div className="relative min-h-screen">
-            <Navbar />
-            <main>{children}</main>
-            <Toaster closeButton />
-          </div>
-        </body>
-      </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
+      <body
+        className={inter.className}
+        style={{
+          margin: 0,
+          padding: 0,
+          width: "100%",
+        }}
+      >
+        <ReduxProvider>
+          <AuthProvider>
+            <div className="relative min-h-screen w-full bg-background m-0 p-0">
+              <Navbar />
+              <div className="fixed z-50 bottom-4 left-1/2 -translate-x-1/2">
+                <FloatingDock
+                  items={links}
+                  desktopClassName={`bg-transparent backdrop-blur-sm`}
+                  mobileClassName={`backdrop-blur-sm`}
+                />
+              </div>
+              <main>
+                {children}
+                <Analytics />
+              </main>
+              <Toaster closeButton />
+            </div>
+          </AuthProvider>
+        </ReduxProvider>
+      </body>
     </html>
   );
 }

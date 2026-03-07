@@ -1,63 +1,171 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
+import { useSession, signIn, signOut } from "@/lib/auth-client";
+import { LiquidGlassCard } from "@/components/liquid-glass";
+import { Avatar, AvatarImage, AvatarFallback } from "./ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
+import {
+  setUserDetails,
+  setUserInitialized,
+  clearUser,
+  selectUserProfile,
+} from "@/lib/redux/slices/userSlice";
+import { setChats, clearChats } from "@/lib/redux/slices/chatsSlice";
+import { useRouter } from "next/navigation";
+
+const ProfileAvatar = ({}) => {
+  const [mounted, setMounted] = useState(false);
+  const userProfile = useSelector(selectUserProfile);
+  const { name = "John Doe", profileImage = "" } = userProfile;
+    const router = useRouter();
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const initials = name
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+
+  const dispatch = useDispatch();
+
+  const handleLogout = async () => {
+    dispatch(clearUser());
+    dispatch(clearChats());
+    await signOut();
+    router.push("/login");
+  };
+  return (
+    <div>
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Avatar className={`ring-2 ring-offset-0 ring-border`}>
+            <AvatarImage
+              src={profileImage}
+              alt="@shadcn"
+              className={`ring-1 ring-offset-1 ring-primary/20`}
+            />
+            <AvatarFallback>CN</AvatarFallback>
+          </Avatar>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem asChild>
+            <Link href={`/dashboard`}>Profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem>Report Issue</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>Sign Out</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+};
 
 function Navbar() {
   const { data: session } = useSession();
+  const dispatch = useDispatch();
+  const router = useRouter();
 
   useEffect(() => {
-    if (session) {
-      const name = session?.user?.name;
-      const email = session?.user?.email;
-      const googleId = session?.user?.googleId;
+    if (!session) return;
 
-      console.log("Session data:", { name, email, googleId }); // Debug log
+    const name = session?.user?.name;
+    const email = session?.user?.email;
+    const googleId = session?.user?.googleId;
+    const profileImage = session?.user?.image;
 
+    const initializeUser = async () => {
       try {
-        // Only set values that exist
-        if (name) localStorage.setItem("name", name);
-        if (email) localStorage.setItem("email", email);
-        if (googleId) localStorage.setItem("googleId", googleId);
-
-        console.log("User data saved to localStorage");
-      } catch (error) {
-        console.error("Error saving user data to localStorage:", error.message);
-      }
-      // API route
-      const saveUser = async () => {
-        const response = await fetch("/api/sign-up", {
+        // Upsert user in DB on every login
+        const signUpRes = await fetch("/api/sign-up", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, email }),
         });
 
-        if (response.ok) {
-          const user = await response.json();
-          console.log("User saved or retrieved:", user);
-        } else {
-          console.error("Failed to save user");
+        if (!signUpRes.ok) {
+          console.error("Failed to save user during sign-up");
+          return;
         }
-      };
 
-      saveUser();
-    }
-  }, []);
+        // Fetch full user details (subscription, history, _id)
+        const detailsRes = await fetch("/api/get-user-details", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+
+        if (!detailsRes.ok) {
+          console.error("Failed to fetch user details");
+          return;
+        }
+
+        const userDetails = await detailsRes.json();
+
+        // Store complete user profile in Redux
+        dispatch(
+          setUserDetails({
+            _id: userDetails._id || "",
+            name: userDetails.name || "",
+            email: userDetails.email || "",
+            googleId: googleId || "",
+            profileImage: profileImage || "",
+            chats: userDetails.history || [],
+            subscriptionPlan: userDetails.subscriptionPlan || "free",
+            subscriptionEndDate: userDetails.subscriptionEndDate || null,
+            monthlyTripCount: userDetails.monthlyTripCount ?? 0,
+          }),
+        );
+
+        // Fetch all trips and store in Redux
+        const tripIds = userDetails.history || [];
+        if (tripIds.length > 0) {
+          const allTrips = await Promise.all(
+            tripIds.map((tripId) =>
+              fetch("/api/get-trip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tripid: tripId }),
+              })
+                .then((res) => (res.ok ? res.json() : null))
+                .catch((err) => {
+                  console.error(`Failed to fetch trip ${tripId}:`, err);
+                  return null;
+                }),
+            ),
+          );
+          dispatch(setChats(allTrips.filter(Boolean)));
+        } else {
+          dispatch(setChats([]));
+        }
+
+        // Mark user data as fully loaded
+        dispatch(setUserInitialized(true));
+      } catch (error) {
+        console.error("Error initializing user data:", error);
+      }
+    };
+
+    initializeUser();
+  }, [session, dispatch]);
 
   return (
     <>
-      <nav
-        className="w-full fixed top-0 left-0 border flex shadow-md backdrop-blur-xl z-50
-    justify-between px-4 py-4"
-      >
+      <nav className="w-full fixed top-0 left-0 flex backdrop-blur-md z-50 justify-between px-4 py-4 ">
         {/* Logo & branding */}
         <Link href="/">
-          <div className="flex gap-2 justify-center items-center">
+          <div className="flex gap-2 justify-center items-center text-foreground ">
             <svg
-              fill="#000000"
+              fill="currentColor"
               viewBox="-1 0 19 19"
               xmlns="http://www.w3.org/2000/svg"
               className="w-8 h-8"
@@ -77,35 +185,29 @@ function Navbar() {
         </Link>
 
         {/* Nav items */}
-        <div>
-          {session ? (
-            <div className="flex gap-2 md:gap-4 justify-center items-center">
-              <Link href="/dashboard">
-                <p className="text-xl font-semibold">
-                  {session?.user?.name.split(" ")[0]}
-                </p>
-              </Link>
+        <div className="flex gap-8">
+          <AnimatedThemeToggler />
+          <div>
+            {session ? (
+              <div className="flex gap-2 md:gap-4 justify-center items-center">
+                <ProfileAvatar />
+              </div>
+            ) : (
               <Button
                 variant="default"
-                onClick={() =>
-                  signOut({ callbackUrl: "http://localhost:3000" })
-                }
+                onClick={() => {
+                  // const baseUrl =
+                  //   process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+                  // signIn("google", {
+                  //   callbackUrl: `${baseUrl}/create-trip`,
+                  // });
+                  router.push("/login")
+                }}
               >
-                Sign Out
+                Sign Up
               </Button>
-            </div>
-          ) : (
-            <Button
-              variant="default"
-              onClick={() =>
-                signIn("google", {
-                  callbackUrl: "http://localhost:3000/create-trip",
-                })
-              }
-            >
-              Sign Up
-            </Button>
-          )}
+            )}
+          </div>
         </div>
       </nav>
     </>
