@@ -6,7 +6,7 @@ import AuthProvider from "@/context/AuthProvider";
 import { ReduxProvider } from "@/lib/redux/ReduxProvider";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { links } from "@/constants";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -51,7 +51,10 @@ export default function RootLayout({ children }) {
                   mobileClassName={`backdrop-blur-sm`}
                 />
               </div>
-              <main>{children}</main>
+              <main>
+                {children}
+                <Analytics />
+              </main>
               <Toaster closeButton />
             </div>
           </AuthProvider>
