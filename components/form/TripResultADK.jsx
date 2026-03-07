@@ -41,8 +41,8 @@ function TripResultADK({ data }) {
           {/* Main Content Column */}
           <div className="flex flex-1 flex-col gap-8">
             {/* Overview Component */}
-            <div className="flex gap-4">
-              <div className="w-[70%] rounded-xl flex-1">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="w-full lg:w-[70%] rounded-xl">
                 <Overview
                   weather={weather}
                   input={input}
@@ -52,21 +52,21 @@ function TripResultADK({ data }) {
                 />
               </div>
               {budget && (
-                <div className="w-[30%]">
+                <div className="w-full lg:w-[30%]">
                   <Budget budget={budget} />
                 </div>
               )}
             </div>
 
             {/* Attractions Component */}
-            <div className="flex gap-4">
+            <div className="flex flex-col lg:flex-row gap-4">
               {attractions && (
-                <div className="w-[60%]">
+                <div className="w-full lg:w-[60%]">
                   <Attractions attractions={attractions} />
                 </div>
               )}
               {foods && (
-                <div className="w-[40%] mt-10">
+                <div className="w-full lg:w-[40%] lg:mt-10">
                   <Foods foods={foods} />
                 </div>
               )}

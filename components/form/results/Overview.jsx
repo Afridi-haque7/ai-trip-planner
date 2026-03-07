@@ -95,7 +95,7 @@ export default function Overview({
             </h1>
             <p className="text-slate-500 dark:text-slate-400 font-medium">{`${input.startDate} to ${input.endDate}, ${noOfDays} days`}</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-sm transition-colors">
               <Share2 className="w-4 h-4" />
               Share

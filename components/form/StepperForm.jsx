@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useContext, useState, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -176,33 +176,41 @@ export default function StepperForm() {
 
   // Step indicator component
   const StepIndicator = () => (
-    <div className="flex items-center justify-around gap-2 mb-8 mx-auto">
-      {[1, 2, 3].map((step) => (
-        <div key={step} className="flex items-center flex-1">
-          <div
-            className={`flex items-center justify-center w-10 h-10 rounded-full font-semibold text-sm transition-all duration-300 ${
-              currentStep >= step
-                ? "bg-primary text-white"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {currentStep > step ? (
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              step
-            )}
-          </div>
-          <div className="text-xs font-medium text-foreground ml-2">{STEP_LABELS[step]}</div>
-          {step < 3 && (
+    <div className="flex items-start mb-8">
+      {[1, 2, 3].map((step, idx) => (
+        <Fragment key={step}>
+          {/* Connector line between steps — placed before step 2 and 3 */}
+          {idx > 0 && (
             <div
-              className={`flex-1 h-1 mx-2 rounded transition-colors duration-300 ${
-                currentStep > step ? "bg-primary" : "bg-muted"
+              className={`flex-1 h-0.5 mt-[18px] sm:mt-5 mx-1 sm:mx-2 rounded transition-colors duration-300 ${
+                currentStep > idx ? "bg-primary" : "bg-muted"
               }`}
-            ></div>
+            />
           )}
-        </div>
+          {/* Step column — fixed equal width keeps all gaps identical */}
+          <div className="flex flex-col items-center gap-1.5 shrink-0 w-16 sm:w-20">
+            <div
+              className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full font-semibold text-sm transition-all duration-300 ${
+                currentStep >= step
+                  ? "bg-primary text-white dark:text-black"
+                  : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {currentStep > step ? (
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                step
+              )}
+            </div>
+            <span className={`text-[10px] sm:text-xs font-medium text-center leading-tight ${
+              currentStep >= step ? "text-primary" : "text-muted-foreground"
+            }`}>
+              {STEP_LABELS[step]}
+            </span>
+          </div>
+        </Fragment>
       ))}
     </div>
   );

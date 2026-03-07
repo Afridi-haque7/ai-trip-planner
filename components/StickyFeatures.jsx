@@ -135,23 +135,23 @@ const StickyFeatures = () => {
                 />
               </h1>
             </div>
-            <div className="grid gap-2">
-              <figure className="grid place-content-center -skew-x-12 xs:max-w-12 ">
+            <div className="hidden sm:grid gap-2">
+              <figure className="grid place-content-center -skew-x-12">
                 <Image
                   src="https://images.unsplash.com/photo-1545073334-9cb53498f1dc?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                   alt="trip image"
-                  className="transition-all duration-300 xs:scale-50 md:scale-100 xs:w-10 xs:h-20 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover"
+                  className="transition-all duration-300 w-16 h-24 sm:w-28 sm:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96 align-bottom object-cover"
                   width={160}
                   height={50}
                 />
               </figure>
-              <figure className="grid place-content-center skew-x-12 xs:max-w-12">
+              <figure className="grid place-content-center skew-x-12">
                 <Image
                   src="https://images.unsplash.com/photo-1603011900469-ed3539c7199c"
                   alt="trip image"
                   width={160}
                   height={30}
-                  className="transition-all duration-300 xs:w-30 xs:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover "
+                  className="transition-all duration-300 w-16 h-24 sm:w-28 sm:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96 align-bottom object-cover"
                 />
               </figure>
               <figure className="grid place-content-center -skew-x-12">
@@ -160,7 +160,7 @@ const StickyFeatures = () => {
                   alt="trip image"
                   width={160}
                   height={30}
-                  className="transition-all duration-300 xs:w-30 xs:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover "
+                  className="transition-all duration-300 w-16 h-24 sm:w-28 sm:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96 align-bottom object-cover"
                 />
               </figure>
               <figure className="grid place-content-center skew-x-12">
@@ -169,7 +169,7 @@ const StickyFeatures = () => {
                   alt="trip image"
                   width={160}
                   height={30}
-                  className="transition-all duration-300 xs:w-30 xs:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96  align-bottom object-cover "
+                  className="transition-all duration-300 w-16 h-24 sm:w-28 sm:h-40 md:w-60 md:h-80 lg:w-80 lg:h-96 align-bottom object-cover"
                 />
               </figure>
             </div>

@@ -268,19 +268,19 @@ function InputForm() {
           <label htmlFor="budget" className="font-semibold text-lg text-foreground">
             What's your budget range?
           </label>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {BudgetOptions.map((item, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => setFormData({ ...formData, budget: item.value })}
-                className={`border-2 rounded-xl shadow-md flex justify-evenly items-center px-4 py-4 text-center transition-all duration-300 cursor-pointer group ${
+                className={`border-2 rounded-xl shadow-md flex sm:flex-col justify-start sm:justify-center items-center gap-3 px-4 py-4 text-left sm:text-center transition-all duration-300 cursor-pointer group ${
                   formData.budget === item.value
                     ? "bg-primary/20 border-primary scale-105 shadow-lg"
                     : "border-border hover:border-primary/50 hover:bg-card/80 hover:shadow-md"
                 }`}
               >
-                <img src={item.icon} alt={item.title} className="w-12 h-12 transition-transform group-hover:scale-110" />
+                <img src={item.icon} alt={item.title} className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 transition-transform group-hover:scale-110" />
                 <span>
                   <h2 className="text-base font-semibold">{item.title}</h2>
                   <p className="text-xs text-muted-foreground">{item.description}</p>
@@ -295,7 +295,7 @@ function InputForm() {
           <label htmlFor="members" className="font-semibold text-lg text-foreground">
             Who's traveling with you?
           </label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {MemberOptions.map((item, index) => (
               <button
                 key={index}
@@ -303,13 +303,13 @@ function InputForm() {
                 onClick={() =>
                   setFormData({ ...formData, members: item.value })
                 }
-                className={`border-2 rounded-xl shadow-md flex gap-4 px-4 py-4 text-left transition-all duration-300 cursor-pointer group ${
+                className={`border-2 rounded-xl shadow-md flex gap-3 px-4 py-4 text-left transition-all duration-300 cursor-pointer group ${
                   formData.members === item.value
                     ? "bg-primary/20 border-primary scale-105 shadow-lg"
                     : "border-border hover:border-primary/50 hover:bg-card/80 hover:shadow-md"
                 }`}
               >
-                <img src={item.icon} alt={item.title} className="w-14 h-14 transition-transform group-hover:scale-110" />
+                <img src={item.icon} alt={item.title} className="w-10 h-10 sm:w-14 sm:h-14 shrink-0 transition-transform group-hover:scale-110" />
                 <span>
                   <h2 className="text-base font-semibold">{item.title}</h2>
                   <p className="text-xs text-muted-foreground">{item.description}</p>
