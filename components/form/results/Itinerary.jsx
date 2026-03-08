@@ -11,14 +11,18 @@ import {
   Utensils,
   BusFront,
 } from "lucide-react";
-import { capitalizeFirstLetter, getTimeOfDay } from "./helper";
-const ItineraryCard = ({ activity }) => {
+import { capitalizeFirstLetter, getTimeOfDay, getCurrencySymbol, minutesToHours, getSegment } from "./helper";
+
+const ItineraryCard = ({ activity, currency = "USD" }) => {
   const timeOfDay = getTimeOfDay(activity.startTime);
   const timeIcon = {
     Morning: <Sunrise className="w-5 h-5 text-yellow-500" />,
     Afternoon: <Sun className="w-5 h-5 text-yellow-500" />,
     Evening: <Moon className="w-5 h-5 text-yellow-500" />,
   };
+  const costPerPerson = activity.estimatedCostPerPerson || 0;
+  const time = minutesToHours(activity?.estimatedDurationMinutes || 60);
+
   return (
     <>
       <div className="relative flex gap-6 group">
@@ -39,7 +43,7 @@ const ItineraryCard = ({ activity }) => {
               </p>
             </div>
             <div className="bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded text-xs font-bold text-slate-600 dark:text-slate-300">
-              Free Entry
+              {costPerPerson === 0 ? "Free Entry" : `${getCurrencySymbol(currency)} ${costPerPerson}`}
             </div>
           </div>
           <p className="text-slate-600 dark:text-slate-300 text-sm mb-4 leading-relaxed">
@@ -56,11 +60,11 @@ const ItineraryCard = ({ activity }) => {
             <div className="flex flex-col gap-2 justify-center">
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <Footprints className="w-4 h-4" />
-                <span>2.5km walking total</span>
+                <span>{`${getSegment(activity?.type)}`} total</span>
               </div>
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <Clock4 className="w-4 h-4" />
-                <span>3.5 hours recommended</span>
+                <span>{`${time}`} recommended</span>
               </div>
             </div>
           </div>
@@ -70,37 +74,6 @@ const ItineraryCard = ({ activity }) => {
   );
 };
 
-// const DayThemeCard = ({
-//   day,
-//   date,
-//   theme = "General",
-//   weatherNote = "No weather info",
-//   travelSegments = [],
-//   mealsIncluded = {},
-//   dailyEstimatedCostPerPerson = 100,
-// }) => {
-//   return (
-//     <div>
-//       <Card className="relative w-full overflow-hidden">
-//         <ShineBorder shineColor={["#A07CFE", "#FE8FB5", "#FFBE7B"]} />
-//         <CardHeader>
-//           <CardTitle className="text-center">Day {day} • {date}</CardTitle>
-//           <CardDescription>
-//             <p>Today's Theme is <span className="font-bold">{theme}</span>.{" "}</p>
-//             {weatherNote && (
-//               <span>
-//                 Weather Note: <span className="font-bold">{weatherNote}</span>.
-//               </span>
-//             )}
-//             <p>Today's Estimitaed cost per person: {dailyEstimatedCostPerPerson}</p>
-//           </CardDescription>
-//         </CardHeader>
-//         <CardContent></CardContent>
-//       </Card>
-//     </div>
-//   );
-// };
-
 const DayThemeCard = ({
   day,
   date,
@@ -109,6 +82,7 @@ const DayThemeCard = ({
   travelSegments = [],
   mealsIncluded = {},
   dailyEstimatedCostPerPerson = 100,
+  currency = "USD",
 }) => {
   const mealIcons = {
     breakfast: {
@@ -163,7 +137,7 @@ const DayThemeCard = ({
               )}
             </div>
             <h2 className="text-2xl font-bold tracking-tight leading-tight mt-2">
-              {theme}
+              {capitalizeFirstLetter(theme)}
             </h2>
           </div>
 
@@ -173,7 +147,7 @@ const DayThemeCard = ({
               Est. / person
             </p>
             <p className="text-white text-lg font-bold leading-tight">
-              ${dailyEstimatedCostPerPerson}
+              {`${getCurrencySymbol(currency)} ${dailyEstimatedCostPerPerson}`}
             </p>
           </div>
         </div>
@@ -222,6 +196,7 @@ function Itinerary({
   currentDay: propCurrentDay,
   setCurrentDay: propSetCurrentDay,
   itinerary,
+  currency = "USD",
 }) {
   const [currentDay, setCurrentDay] = useState(1);
   const totalDays = itinerary.totalDays || itinerary.days?.length;
@@ -289,9 +264,10 @@ function Itinerary({
                   travelSegments={travelSegments}
                   mealsIncluded={mealsIncluded}
                   dailyEstimatedCostPerPerson={dailyEstimatedCostPerPerson}
+                  currency={currency}
                 />
                 {activities.map((activity, idx) => {
-                  return <ItineraryCard activity={activity} key={idx} />;
+                  return <ItineraryCard activity={activity} key={idx} currency={currency} />;
                 })}
               </div>
             );

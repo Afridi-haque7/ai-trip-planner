@@ -35,3 +35,24 @@ export const getTimeOfDay = (startTime) => {
 
   return "";
 };
+
+export const minutesToHours = (minutes) => {
+  if (typeof minutes !== "number" || minutes < 0) return "0 mins";
+  if (minutes < 60) return `${minutes} mins`;
+  const hrs = minutes / 60;
+  return `${hrs} hour${hrs !== 1 ? "s" : ""}`;
+};
+
+const activityTypeSegment = {
+  leisure: "2 km walking",
+  cultural: "1 km walking",
+  nature: "2.5 km walking",
+  adventure: "3 km walking",
+  food: "0.5 km walking",
+  attraction: "1.5 km walking",
+  hotel: "0 km walking",
+};
+
+export const getSegment = (activityType) => {
+  return activityTypeSegment[activityType.toLowerCase()] || "1 km walking";
+};

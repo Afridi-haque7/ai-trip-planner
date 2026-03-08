@@ -1,24 +1,58 @@
 "use client";
 import dynamic from "next/dynamic";
-import React from "react";
+import React, { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTheme } from "next-themes";
 import { Textarea } from "@/components/ui/textarea";
 
 const Globe = dynamic(() => import("@/components/magicui/globe.jsx"));
 const MagicCard = dynamic(() => import("@/components/magicui/magic-card.jsx"));
 
 function Footer() {
+  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      toast.error("Please fill in all fields.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Message sent! We'll get back to you soon.");
+        setForm({ name: "", email: "", message: "" });
+      } else {
+        toast.error(data.error || "Something went wrong.");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <p className="text-foreground xl:text-6xl md:text-5xl sm:text-4xl text-3xl font-semibold text-center mb-12 flex flex-col lg:flex-row justify-center">
@@ -35,7 +69,7 @@ function Footer() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                <form>
+                <form onSubmit={handleSubmit} noValidate>
                   <div className="grid gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="email">Your Email</Label>
@@ -43,7 +77,10 @@ function Footer() {
                         id="email"
                         type="email"
                         placeholder="name@example.com"
+                        value={form.email}
+                        onChange={handleChange}
                         className={`border-border`}
+                        disabled={loading}
                       />
                     </div>
                     <div className="grid gap-2">
@@ -52,21 +89,35 @@ function Footer() {
                         id="name"
                         type="text"
                         placeholder="Enter your name"
+                        value={form.name}
+                        onChange={handleChange}
                         className={`border-border`}
+                        disabled={loading}
                       />
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="message">Your Message</Label>
                       <Textarea
-                        className={`border-border`}
+                        id="message"
+                        className={`border-border resize-none`}
                         placeholder="Enter your message"
+                        value={form.message}
+                        onChange={handleChange}
+                        rows={4}
+                        disabled={loading}
                       />
                     </div>
                   </div>
                 </form>
               </CardContent>
               <CardFooter className="p-4 ">
-                <Button className="w-full">Send Meesage</Button>
+                <Button
+                  className="w-full"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? "Sending..." : "Send Message"}
+                </Button>
               </CardFooter>
             </MagicCard>
           </Card>

@@ -7,6 +7,7 @@ import { ReduxProvider } from "@/lib/redux/ReduxProvider";
 import { FloatingDock } from "@/components/ui/floating-dock";
 import { links } from "@/constants";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
@@ -53,12 +54,13 @@ export default function RootLayout({ children }) {
               </div>
               <main>
                 {children}
-                <Analytics />
               </main>
               <Toaster closeButton />
             </div>
           </AuthProvider>
         </ReduxProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
