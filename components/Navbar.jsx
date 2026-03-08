@@ -62,7 +62,9 @@ const ProfileAvatar = ({}) => {
           <DropdownMenuItem asChild>
             <Link href={`/dashboard`}>Profile</Link>
           </DropdownMenuItem>
-          <DropdownMenuItem>Report Issue</DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={`/contact`}>Report Issues</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleLogout}>Sign Out</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

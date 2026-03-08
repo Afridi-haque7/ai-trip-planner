@@ -78,6 +78,7 @@ function TripResultADK({ data }) {
                   currentDay={currentDay}
                   setCurrentDay={setCurrentDay}
                   itinerary={itinerary}
+                  currency={input?.currency}
                 />
               </div>
             )}

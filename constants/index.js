@@ -7,7 +7,7 @@ import {
   IconTerminal2,
   IconBrandInstagram,
 } from "@tabler/icons-react";
-import { House, LayoutDashboard, DollarSign, Instagram } from "lucide-react";
+import { House, LayoutDashboard, DollarSign, Instagram, Mail } from "lucide-react";
 // import { redirectIfUnauthenticated } from "@/app/helper";
 export const BudgetOptions = [
   {
@@ -181,18 +181,18 @@ export const links = [
     ),
     href: "/pricing",
   },
+  {
+    title: "Contact",
+    icon: (
+      <Mail className="h-full w-full text-neutral-500 dark:text-neutral-300" />
+    ),
+    href: "/contact",
+  },
 
   {
     title: "Twitter",
     icon: (
       <IconBrandX className="h-full w-full text-neutral-500 dark:text-neutral-300" />
-    ),
-    href: "/",
-  },
-  {
-    title: "Instagram",
-    icon: (
-      <IconBrandInstagram className="h-full w-full text-neutral-500 dark:text-neutral-300" />
     ),
     href: "/",
   },
