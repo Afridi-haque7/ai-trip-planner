@@ -281,7 +281,7 @@ const PipelineMetadataSchema = new mongoose.Schema(
 // ============ MAIN TRIP SCHEMA ============
 const TripSchema = new mongoose.Schema(
   {
-    tripId: { type: String, unique: true, required: true },
+    tripId: { type: String, required: true },
     userId: { type: String, required: true }, // Reference to User._id
     input: TripInputSchema,
     derived: DerivedMetadataSchema,
