@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import Error from "@/components/Error";
 import TripResultADK from "@/components/form/TripResultADK";
 import { setTripContext } from "@/lib/redux/slices/tripSlice";
-import { selectChatByTripId } from "@/lib/redux/slices/chatsSlice";
+import { selectChatByTripId, upsertChatByTripId } from "@/lib/redux/slices/chatsSlice";
 import { selectIsUserInitialized } from "@/lib/redux/slices/userSlice";
 import confetti from "canvas-confetti";
 export const dynamic = "force-dynamic";
@@ -17,6 +17,9 @@ export default function ViewTrip() {
   const dispatch = useDispatch();
   const isInitialized = useSelector(selectIsUserInitialized);
   const trip = useSelector(selectChatByTripId(tripid));
+  const [isFallbackLoading, setIsFallbackLoading] = useState(false);
+  const [hasFallbackError, setHasFallbackError] = useState(false);
+  const fallbackAttemptedRef = useRef(false);
 
   const handleClick = useCallback(() => {
     const end = Date.now() + 3 * 1000; // 3 seconds
@@ -58,14 +61,57 @@ export default function ViewTrip() {
     }
   }, [trip, dispatch]);
 
-  if (!isInitialized) {
+  const fetchTripFallback = useCallback(async () => {
+    if (!tripid) return;
+
+    setIsFallbackLoading(true);
+    setHasFallbackError(false);
+
+    try {
+      const response = await fetch("/api/get-trip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tripid }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch trip");
+      }
+
+      const fetchedTrip = await response.json();
+      dispatch(upsertChatByTripId(fetchedTrip));
+      setHasFallbackError(false);
+    } catch (error) {
+      console.error("[ViewTrip] Fallback fetch failed:", error);
+      setHasFallbackError(true);
+    } finally {
+      setIsFallbackLoading(false);
+    }
+  }, [dispatch, tripid]);
+
+  useEffect(() => {
+    if (!isInitialized || trip || !tripid || fallbackAttemptedRef.current) {
+      return;
+    }
+
+    fallbackAttemptedRef.current = true;
+    fetchTripFallback();
+  }, [isInitialized, trip, tripid, fetchTripFallback]);
+
+  if (!isInitialized || isFallbackLoading) {
     return (
       <div className="mt-32 text-center text-2xl">Loading trip details...</div>
     );
   }
 
-  if (!trip) {
+  if (!trip && hasFallbackError) {
     return <Error />;
+  }
+
+  if (!trip) {
+    return (
+      <div className="mt-32 text-center text-2xl">Preparing your trip details...</div>
+    );
   }
 
   return (

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * ADK Execution Schemas
- * 
+ *
  * Strict Zod schemas for LLM agent outputs.
  * Used for:
  * 1. LLM function calling validation
@@ -22,7 +22,9 @@ export const WeatherResultSchema = z.object({
     .describe("Season to avoid due to weather/crowds/costs"),
   temperatureRange: z
     .string()
-    .describe("Expected temperature range during travel dates (e.g., '25-35°C')"),
+    .describe(
+      "Expected temperature range during travel dates (e.g., '25-35°C')"
+    ),
   seasonalImpactOnCost: z
     .enum(["low", "medium", "high"])
     .describe("How much does season affect travel costs"),
@@ -49,6 +51,7 @@ const AttractionSchema = z.object({
   reviewsCount: z.number().nonnegative(),
   images: z.array(z.string().url()),
   recommendedVisitDurationHours: z.number().positive(),
+  currency: z.string().length(3).optional().default("USD"),
 });
 
 const FoodItemSchema = z.object({
@@ -63,6 +66,7 @@ const FoodItemSchema = z.object({
       rating: z.number().min(0).max(5),
     })
   ),
+  currency: z.string().length(3).optional().default("USD"),
 });
 
 const HotelSchema = z.object({
@@ -70,6 +74,9 @@ const HotelSchema = z.object({
   description: z.string(),
   location: z.string(),
   pricePerNight: z.number().positive(),
+  // NO default — absence means the agent forgot to stamp it, which is caught
+  // in place.agent.ts post-parse and budget.agent.ts convert() warns on it.
+  currency: z.string().length(3).optional(),
   rating: z.number().min(0).max(5),
   reviewsCount: z.number().nonnegative(),
   amenities: z.array(z.string()),
@@ -115,6 +122,8 @@ const ItineraryActivitySchema = z.object({
   estimatedCostPerPerson: z.number().nonnegative().optional(),
   relatedPlaceId: z.string().optional(),
   notes: z.string().optional(),
+  // NO default — absence is detected and stamped by itinerary.agent.ts post-parse
+  currency: z.string().length(3).optional(),
 });
 
 const TravelSegmentSchema = z.object({
@@ -129,6 +138,7 @@ const TravelSegmentSchema = z.object({
   ]),
   estimatedTravelTimeMinutes: z.number().positive(),
   estimatedCost: z.number().nonnegative().optional(),
+  currency: z.string().length(3).optional(),
 });
 
 const ItineraryDaySchema = z.object({
@@ -143,6 +153,7 @@ const ItineraryDaySchema = z.object({
     dinner: z.boolean().optional(),
   }),
   dailyEstimatedCostPerPerson: z.number().nonnegative(),
+  currency: z.string().length(3).optional(),
 });
 
 export const ItineraryResultSchema = z.object({
@@ -151,6 +162,8 @@ export const ItineraryResultSchema = z.object({
   totalDays: z.number().positive(),
   days: z.array(ItineraryDaySchema),
   totalEstimatedCostPerPerson: z.number().nonnegative(),
+  // Stamped explicitly by itinerary.agent.ts — no default here
+  currency: z.string().length(3).optional(),
 });
 
 export type ItineraryResult = z.infer<typeof ItineraryResultSchema>;
@@ -206,14 +219,14 @@ export type DerivedTripMetadata = z.infer<typeof DerivedTripMetadataSchema>;
 // ============ TRIP INPUT ============
 
 export const TripInputSchema = z.object({
-  origin: z.string().min(1), // Origin location for cost and travel planning
+  origin: z.string().min(1),
   destination: z.string().min(1),
   numberOfPeople: z.number().int().positive(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   budgetLevel: z.enum(["low", "medium", "luxury"]),
   currency: z.string().length(3).toUpperCase(), // ISO 4217 currency code
-  tripTheme: z.array(z.string()).optional().default([]), // Theme preferences: adventure, cultural, nature, historical, shopping, relaxation
+  tripTheme: z.array(z.string()).optional().default([]),
 });
 
 export type TripInput = z.infer<typeof TripInputSchema>;

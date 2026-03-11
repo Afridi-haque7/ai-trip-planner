@@ -263,6 +263,10 @@ PRICE REFERENCE FOR ${input.destination} IN ${input.currency}:
 
 Use the above ranges as your price reference. Do NOT use USD values or default to generic numbers.
 
+**CRITICAL: All pricePerNight values MUST be in ${input.currency} (ISO 4217).
+Set the "currency" field on every hotel object to "${input.currency}".
+Do NOT use USD or any other currency unless the user's currency IS USD.**
+
 Return ONLY this exact JSON structure:
 {
   "attractions": [
@@ -434,7 +438,22 @@ export const placeAgent = {
 
     console.log(`[Place Agent] Fetched images for ${tasks.length} items`);
 
-    // Step 6: Validate against Zod schema
+    // Step 6: Stamp currency on every hotel before Zod validation.
+    // This ensures budget.agent.ts convert() never sees undefined and
+    // never falls back to the USD default that causes double-conversion.
+    for (const tier of ["budget", "medium", "luxury"] as const) {
+      for (const hotel of parsed.hotelRecommendations?.[tier] ?? []) {
+        if (!hotel.currency) {
+          console.warn(
+            `[Place Agent] Hotel "${hotel.name}" missing currency field — stamping ${input.currency}. ` +
+            `Check LLM output to ensure prices are actually in ${input.currency}.`
+          );
+          hotel.currency = input.currency;
+        }
+      }
+    }
+
+    // Step 7: Validate against Zod schema
     return PlaceResultSchema.parse(parsed);
   },
 };
