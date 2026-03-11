@@ -1,8 +1,17 @@
 /**
- * Flight Estimation Tool — v3
+ * Flight Estimation Tool — v4
  *
  * No external API. Uses realistic 2024/2025 airfare ranges per route type
  * + budget tier, then converts to the user's currency via exchange rates.
+ *
+ * v4 changes:
+ *  - Accepts an optional `liveUsdRate` param so the Budget Agent can inject
+ *    the same live exchange rate it fetched — eliminating drift between the
+ *    static table and the live rate used elsewhere in the budget.
+ *  - Falls back to the internal static table only when no live rate is given.
+ *  - Fixed: default currency fallback was "INR" — now correctly "USD".
+ *  - `currency` is always stamped on DetailedFlightEstimate so the Budget
+ *    Agent can verify no conversion is needed.
  *
  * Accuracy: within 15–20% of real prices for most routes — sufficient to
  * anchor the Budget Agent and avoid currency mismatch bugs.
@@ -16,8 +25,14 @@ interface FlightEstimationParams {
   numberOfTravelers: number;
   departureDate: string;    // YYYY-MM-DD
   returnDate?: string;
-  currency: string;         // ISO 4217 e.g. "INR"
+  currency: string;         // ISO 4217 e.g. "INR" — REQUIRED, no default
   budgetLevel?: "low" | "medium" | "luxury";
+  /**
+   * Optional: live USD→currency rate fetched by the caller (e.g. Budget Agent).
+   * When provided this takes precedence over the internal static table,
+   * ensuring all cost figures use a single consistent exchange rate.
+   */
+  liveUsdRate?: number;
 }
 
 interface FlightCostEstimate {
@@ -29,10 +44,15 @@ interface FlightCostEstimate {
 interface DetailedFlightEstimate {
   pricePerPerson: FlightCostEstimate;
   priceForGroup: FlightCostEstimate;
+  /** Always set to params.currency — lets callers verify no re-conversion needed */
   currency: string;
   routeType: string;
   seasonalMultiplier: number;
   isRoundTrip: boolean;
+  /** The USD→currency rate actually used (live or static fallback) */
+  usdRateUsed: number;
+  /** Whether the live rate was used or the internal static table */
+  rateSource: "live" | "static";
 }
 
 // ─── IATA resolver ────────────────────────────────────────────────────────────
@@ -173,20 +193,19 @@ const IATA_MAP: Record<string, string> = {
 };
 
 // Region sets for route classification
-const INDIAN   = new Set(["DEL","BOM","BLR","CCU","MAA","HYD","GOI","AMD","PNQ","JAI","COK","LKO","VNS","ATQ","SXR","IXL","BBI","PAT","IXR","NAG","IDR","BHO","VTZ","CJB","TRV","IXE","BDQ","STV"]);
-const SEA      = new Set(["DPS","BKK","SIN","KUL","CGK","MNL","SGN","HAN","HKT","CNX","RGN","PNH","VTE","CMB"]);
-const EAST_ASIA= new Set(["NRT","KIX","PEK","PVG","HKG","ICN","TPE","CAN","SZX","FUK"]);
-const S_ASIA   = new Set(["KTM","DAC","KHI","LHE","ISB","MLE","PBH"]);
-const MIDEAST  = new Set(["DXB","AUH","DOH","RUH","IST","MCT","KWI","BAH","TLV","AMM"]);
-const EUROPE   = new Set(["LHR","CDG","AMS","FRA","FCO","BCN","MAD","ZRH","VIE","PRG","ATH","LIS","OSL","ARN","CPH","SVO","MXP","BRU","BUD","WAW","DUB","EDI","GVA"]);
-const AMERICAS = new Set(["JFK","LAX","YYZ","YVR","MEX","GRU","EZE","MIA","ORD","SFO","IAD","BOS","SEA","DFW","IAH","LIM","BOG","SCL"]);
-const OCEANIA  = new Set(["SYD","MEL","BNE","AKL","PER"]);
-const AFRICA   = new Set(["CAI","NBO","JNB","CPT","CMN","LOS","ADD","ACC"]);
+const INDIAN    = new Set(["DEL","BOM","BLR","CCU","MAA","HYD","GOI","AMD","PNQ","JAI","COK","LKO","VNS","ATQ","SXR","IXL","BBI","PAT","IXR","NAG","IDR","BHO","VTZ","CJB","TRV","IXE","BDQ","STV"]);
+const SEA       = new Set(["DPS","BKK","SIN","KUL","CGK","MNL","SGN","HAN","HKT","CNX","RGN","PNH","VTE","CMB"]);
+const EAST_ASIA = new Set(["NRT","KIX","PEK","PVG","HKG","ICN","TPE","CAN","SZX","FUK"]);
+const S_ASIA    = new Set(["KTM","DAC","KHI","LHE","ISB","MLE","PBH"]);
+const MIDEAST   = new Set(["DXB","AUH","DOH","RUH","IST","MCT","KWI","BAH","TLV","AMM"]);
+const EUROPE    = new Set(["LHR","CDG","AMS","FRA","FCO","BCN","MAD","ZRH","VIE","PRG","ATH","LIS","OSL","ARN","CPH","SVO","MXP","BRU","BUD","WAW","DUB","EDI","GVA"]);
+const AMERICAS  = new Set(["JFK","LAX","YYZ","YVR","MEX","GRU","EZE","MIA","ORD","SFO","IAD","BOS","SEA","DFW","IAH","LIM","BOG","SCL"]);
+const OCEANIA   = new Set(["SYD","MEL","BNE","AKL","PER"]);
+const AFRICA    = new Set(["CAI","NBO","JNB","CPT","CMN","LOS","ADD","ACC"]);
 
 function resolveIata(cityName: string): string | null {
   const city = cityName.split(",")[0].trim().toLowerCase();
   if (IATA_MAP[city]) return IATA_MAP[city];
-  // Partial match fallback
   for (const [key, code] of Object.entries(IATA_MAP)) {
     if (city.includes(key) || key.includes(city)) return code;
   }
@@ -208,21 +227,6 @@ function getRegion(code: string): string {
 
 // ─── Route type classifier ────────────────────────────────────────────────────
 
-/**
- * Route types with realistic round-trip base fares in USD (2024/2025):
- *
- * india_domestic_short   DEL→GOI, BOM→COK         $60–$250
- * india_domestic_long    DEL→CCU, BOM→BLR          $80–$350
- * india_south_asia       DEL→KTM, DEL→CMB          $150–$500
- * india_sea              DEL→BKK, BOM→SIN           $300–$900
- * india_east_asia        DEL→NRT, BOM→HKG           $500–$1500
- * india_middle_east      DEL→DXB, BOM→DOH           $250–$700
- * india_europe           DEL→LHR, BOM→CDG           $600–$2000
- * india_americas         DEL→JFK, BOM→LAX           $900–$3000
- * india_oceania          DEL→SYD, BOM→MEL           $700–$2000
- * regional_asia          BKK→SIN, SIN→KUL           $100–$400
- * intercontinental       LHR→JFK, CDG→NRT           $500–$2500
- */
 type RouteType =
   | "india_domestic_short"
   | "india_domestic_long"
@@ -246,22 +250,20 @@ function classifyRoute(originCode: string, destCode: string): RouteType {
 
   if (hasIndia) {
     if (other === "india") {
-      // Both Indian — check if short haul
       const shortHaul = new Set(["GOI","COK","PNQ","JAI","IXL","SXR","VNS","CJB","TRV","IXE"]);
       if (shortHaul.has(originCode) || shortHaul.has(destCode)) return "india_domestic_short";
       return "india_domestic_long";
     }
-    if (other === "south_asia") return "india_south_asia";
-    if (other === "sea")        return "india_sea";
-    if (other === "east_asia")  return "india_east_asia";
-    if (other === "middle_east")return "india_middle_east";
-    if (other === "europe")     return "india_europe";
-    if (other === "americas")   return "india_americas";
-    if (other === "oceania")    return "india_oceania";
-    if (other === "africa")     return "india_africa";
+    if (other === "south_asia")  return "india_south_asia";
+    if (other === "sea")         return "india_sea";
+    if (other === "east_asia")   return "india_east_asia";
+    if (other === "middle_east") return "india_middle_east";
+    if (other === "europe")      return "india_europe";
+    if (other === "americas")    return "india_americas";
+    if (other === "oceania")     return "india_oceania";
+    if (other === "africa")      return "india_africa";
   }
 
-  // Non-India routes
   const asiaGroup = new Set(["sea","east_asia","south_asia"]);
   if (asiaGroup.has(r1) && asiaGroup.has(r2)) return "regional_asia";
 
@@ -270,12 +272,6 @@ function classifyRoute(originCode: string, destCode: string): RouteType {
 
 // ─── Base fares (round-trip USD per person) ───────────────────────────────────
 
-/**
- * Ranges represent realistic economy fares from aggregator sites (2024/2025).
- * low    = budget airline / advance booking
- * medium = standard economy
- * luxury = business / premium economy
- */
 const BASE_FARES_USD: Record<RouteType, Record<"low" | "medium" | "luxury", { min: number; avg: number; max: number }>> = {
   india_domestic_short:  { low: { min: 60,   avg: 100,  max: 180  }, medium: { min: 100,  avg: 160,  max: 250  }, luxury: { min: 200,  avg: 320,  max: 500  } },
   india_domestic_long:   { low: { min: 80,   avg: 140,  max: 220  }, medium: { min: 140,  avg: 210,  max: 320  }, luxury: { min: 280,  avg: 450,  max: 700  } },
@@ -294,11 +290,10 @@ const BASE_FARES_USD: Record<RouteType, Record<"low" | "medium" | "luxury", { mi
 // ─── Currency conversion ──────────────────────────────────────────────────────
 
 /**
- * Approximate exchange rates vs USD (mid-2024 rates).
- * For a trip planner, these are accurate enough — within 5% of live rates
- * for stable currencies.
+ * Static fallback rates (mid-2024). Only used when no live rate is injected.
+ * Callers should prefer passing `liveUsdRate` via FlightEstimationParams.
  */
-const USD_TO: Record<string, number> = {
+const STATIC_USD_TO: Record<string, number> = {
   INR: 83.5, USD: 1,     EUR: 0.92, GBP: 0.79,
   JPY: 157,  AED: 3.67,  THB: 36,   SGD: 1.35,
   AUD: 1.53, CAD: 1.36,  MYR: 4.72, IDR: 16100,
@@ -310,13 +305,33 @@ const USD_TO: Record<string, number> = {
   HKD: 7.82, VND: 25400, PHP: 58,   MMK: 2100,
 };
 
-function convertFromUSD(amountUSD: number, currency: string): number {
-  const rate = USD_TO[(currency || "INR")?.toUpperCase()] ?? 1;
+/**
+ * Resolve which USD→currency rate to use.
+ * Live rate (from Budget Agent) takes precedence over static table.
+ * Throws if currency is missing — callers must always provide it explicitly.
+ */
+function resolveUsdRate(currency: string, liveUsdRate?: number): { rate: number; source: "live" | "static" } {
+  if (!currency) {
+    throw new Error("[Flight Tool] currency is required — no default applied");
+  }
+  const tgt = currency.toUpperCase();
+  if (liveUsdRate !== undefined && liveUsdRate > 0) {
+    return { rate: liveUsdRate, source: "live" };
+  }
+  const staticRate = STATIC_USD_TO[tgt];
+  if (staticRate === undefined) {
+    console.warn(`[Flight Tool] No static rate for ${tgt} — using 1:1 (USD). Add it to STATIC_USD_TO.`);
+    return { rate: 1, source: "static" };
+  }
+  return { rate: staticRate, source: "static" };
+}
+
+function convertFromUSD(amountUSD: number, rate: number, currency: string): number {
   const converted = amountUSD * rate;
   // Round to a "clean" number based on currency magnitude
-  if (rate >= 1000) return Math.round(converted / 500) * 500;   // IDR, VND
-  if (rate >= 100)  return Math.round(converted / 50)  * 50;    // INR, JPY, etc.
-  if (rate >= 10)   return Math.round(converted / 5)   * 5;     // THB, MXN, etc.
+  if (rate >= 1000) return Math.round(converted / 500)  * 500;  // IDR, VND
+  if (rate >= 100)  return Math.round(converted / 50)   * 50;   // INR, JPY, etc.
+  if (rate >= 10)   return Math.round(converted / 5)    * 5;    // THB, MXN, etc.
   return Math.round(converted * 10) / 10;                       // USD, EUR, GBP
 }
 
@@ -324,20 +339,21 @@ function convertFromUSD(amountUSD: number, currency: string): number {
 
 function getSeasonalMultiplier(dateStr: string): number {
   const month = new Date(dateStr).getMonth(); // 0-indexed
-  // Peak: Jun–Aug (summer), Dec–Jan (holidays)
   if ((month >= 5 && month <= 7) || month === 11 || month === 0) return 1.35;
-  // Shoulder: Mar–May, Sep–Nov
   if ((month >= 2 && month <= 4) || (month >= 8 && month <= 10)) return 1.1;
-  // Off: Feb
   return 0.88;
 }
 
 // ─── Core estimator ───────────────────────────────────────────────────────────
 
-function estimatePerPerson(
-  params: FlightEstimationParams
-): { estimate: FlightCostEstimate; routeType: string; seasonal: number } {
-  const originCode = resolveIata(params.origin) ?? "DEL";
+function estimatePerPerson(params: FlightEstimationParams): {
+  estimate: FlightCostEstimate;
+  routeType: string;
+  seasonal: number;
+  usdRateUsed: number;
+  rateSource: "live" | "static";
+} {
+  const originCode = resolveIata(params.origin)      ?? "DEL";
   const destCode   = resolveIata(params.destination) ?? "DEL";
 
   const routeType = classifyRoute(originCode, destCode);
@@ -347,43 +363,40 @@ function estimatePerPerson(
 
   const base = BASE_FARES_USD[routeType][level];
 
-  // Apply seasonal multiplier
   const avgUSD = base.avg * seasonal;
   const minUSD = base.min * seasonal;
   const maxUSD = base.max * seasonal;
 
-  // One-way = 65% of round-trip (not 50% — airlines price asymmetrically)
+  // One-way = 65% of round-trip
   const factor = isRT ? 1 : 0.65;
 
+  const { rate, source } = resolveUsdRate(params.currency, params.liveUsdRate);
+
   const estimate: FlightCostEstimate = {
-    min:     convertFromUSD(minUSD * factor, params.currency),
-    average: convertFromUSD(avgUSD * factor, params.currency),
-    max:     convertFromUSD(maxUSD * factor, params.currency),
+    min:     convertFromUSD(minUSD * factor, rate, params.currency),
+    average: convertFromUSD(avgUSD * factor, rate, params.currency),
+    max:     convertFromUSD(maxUSD * factor, rate, params.currency),
   };
 
   console.log(
-    `[Flight Tool] ${originCode}→${destCode} | route: ${routeType} | ${level} | ` +
-    `seasonal: ×${seasonal} | ${isRT ? "round-trip" : "one-way"} | ` +
+    `[Flight Tool] ${originCode}→${destCode} | ${routeType} | ${level} | ` +
+    `seasonal: ×${seasonal} | ${isRT ? "RT" : "OW"} | ` +
+    `rate: 1 USD = ${rate} ${params.currency} [${source}] | ` +
     `avg: ${estimate.average} ${params.currency}`
   );
 
-  return { estimate, routeType, seasonal };
+  return { estimate, routeType, seasonal, usdRateUsed: rate, rateSource: source };
 }
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
-export function estimateFlightCost(
-  params: FlightEstimationParams
-): FlightCostEstimate {
+export function estimateFlightCost(params: FlightEstimationParams): FlightCostEstimate {
   const { estimate } = estimatePerPerson(params);
-  // Return per-person (Budget Agent handles group multiplication)
   return estimate;
 }
 
-export function getDetailedFlightEstimate(
-  params: FlightEstimationParams
-): DetailedFlightEstimate {
-  const { estimate, routeType, seasonal } = estimatePerPerson(params);
+export function getDetailedFlightEstimate(params: FlightEstimationParams): DetailedFlightEstimate {
+  const { estimate, routeType, seasonal, usdRateUsed, rateSource } = estimatePerPerson(params);
 
   return {
     pricePerPerson: estimate,
@@ -392,10 +405,12 @@ export function getDetailedFlightEstimate(
       average: estimate.average * params.numberOfTravelers,
       max:     estimate.max     * params.numberOfTravelers,
     },
-    currency: params.currency,
+    currency:          params.currency,   // already in target currency
     routeType,
     seasonalMultiplier: parseFloat(seasonal.toFixed(2)),
-    isRoundTrip: !!params.returnDate,
+    isRoundTrip:       !!params.returnDate,
+    usdRateUsed,
+    rateSource,
   };
 }
 

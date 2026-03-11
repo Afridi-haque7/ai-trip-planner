@@ -221,6 +221,9 @@ Attractions: ${attractionsList}
 Foods: ${foodsList}
 Areas: ${areasList}
 
+**CRITICAL: All estimatedCostPerPerson values MUST be in ${input.currency}.
+Set the top-level "currency" field to "${input.currency}".**
+
 RULES:
 - Day 1 (${input.startDate}): Start with airport arrival + hotel check-in. Then ${isShortTrip ? "2-3 activities (short trip)" : "1-2 light activities"}.
 - Last day (${input.endDate}): End with checkout + airport transfer. Before that: ${isShortTrip ? "2-3 activities" : "1-2 morning activities"}.
@@ -303,6 +306,26 @@ export const itineraryAgent = {
 
     // Recalculate costs
     parsed = correctCostMath(parsed);
+
+    // Stamp currency on itinerary and every day/activity before Zod validation.
+    // budget.agent.ts reads itinerary.currency to know whether conversion is needed.
+    // Without this stamp, convert() defaults to USD and multiplies already-correct values.
+    if (!parsed.currency) {
+      console.warn(
+        `[Itinerary Agent] Top-level currency missing from LLM output — stamping ${input.currency}.`
+      );
+    }
+    parsed.currency = input.currency; // always force — LLM must not override this
+
+    for (const day of parsed.days ?? []) {
+      day.currency = input.currency;
+      for (const activity of day.activities ?? []) {
+        activity.currency = input.currency;
+      }
+      for (const segment of day.travelSegments ?? []) {
+        segment.currency = input.currency;
+      }
+    }
 
     return ItineraryResultSchema.parse(parsed);
   },
