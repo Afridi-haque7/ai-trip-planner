@@ -8,6 +8,7 @@ import { useSession, signIn } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { setTripContext, setLoadingTripGeneration, setTripError } from "@/lib/redux/slices/tripSlice";
+import { upsertChatByTripId } from "@/lib/redux/slices/chatsSlice";
 import { TripFormContext } from "@/components/form/TripFormContext";
 import BasicDetailsStep from "@/components/form/steps/BasicDetailsStep";
 import AdvancedDetailsStep from "@/components/form/steps/AdvancedDetailsStep";
@@ -36,7 +37,6 @@ export default function StepperForm() {
     validateStep,
   } = useContext(TripFormContext);
 
-  const userId = useSelector((state) => state.user.googleId) || "unknown";
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { data: session } = useSession();
@@ -84,13 +84,6 @@ export default function StepperForm() {
     dispatch(setLoadingTripGeneration(true));
 
     try {
-      // Ensure we have user ID
-      if (!userId) {
-        
-        console.warn("User Id is missing");
-        return;
-      }
-
       // Prepare the trip input
       const tripInput = {
         origin: formData.origin,
@@ -139,7 +132,6 @@ export default function StepperForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId,
           tripContext: result.context,
         }),
       });
@@ -156,6 +148,35 @@ export default function StepperForm() {
         message: storedTrip.message,
         timestamp: new Date().toISOString(),
       });
+
+      // Hydrate newly created trip in chats store before navigating.
+      try {
+        const tripResponse = await fetch("/api/get-trip", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tripid: storedTrip.tripId }),
+        });
+
+        if (tripResponse.ok) {
+          const persistedTrip = await tripResponse.json();
+          dispatch(upsertChatByTripId(persistedTrip));
+        } else {
+          dispatch(
+            upsertChatByTripId({
+              ...result.context,
+              tripId: storedTrip.tripId,
+            }),
+          );
+        }
+      } catch (hydrateError) {
+        console.warn("[StepperForm] Could not hydrate trip before redirect:", hydrateError);
+        dispatch(
+          upsertChatByTripId({
+            ...result.context,
+            tripId: storedTrip.tripId,
+          }),
+        );
+      }
 
       setIsLoading(false);
       dispatch(setLoadingTripGeneration(false));
