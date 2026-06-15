@@ -218,16 +218,61 @@ export type DerivedTripMetadata = z.infer<typeof DerivedTripMetadataSchema>;
 
 // ============ TRIP INPUT ============
 
-export const TripInputSchema = z.object({
-  origin: z.string().min(1),
-  destination: z.string().min(1),
-  numberOfPeople: z.number().int().positive(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  budgetLevel: z.enum(["low", "medium", "luxury"]),
-  currency: z.string().length(3).toUpperCase(), // ISO 4217 currency code
-  tripTheme: z.array(z.string()).optional().default([]),
-});
+export const MAX_TRIP_DAYS = 10;
+
+export const TripInputSchema = z
+  .object({
+    origin: z.string().min(1),
+    destination: z.string().min(1),
+    numberOfPeople: z.number().int().positive(),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    budgetLevel: z.enum(["low", "medium", "luxury"]),
+    currency: z.string().length(3).toUpperCase(), // ISO 4217 currency code
+    tripTheme: z.array(z.string()).optional().default([]),
+  })
+  .superRefine((input, ctx) => {
+    const start = new Date(`${input.startDate}T00:00:00Z`);
+    const end = new Date(`${input.endDate}T00:00:00Z`);
+
+    if (Number.isNaN(start.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["startDate"],
+        message: "Invalid start date",
+      });
+      return;
+    }
+
+    if (Number.isNaN(end.getTime())) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "Invalid end date",
+      });
+      return;
+    }
+
+    if (end < start) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: "End date must be on or after start date",
+      });
+      return;
+    }
+
+    const tripDays =
+      Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (tripDays > MAX_TRIP_DAYS) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["endDate"],
+        message: `Trip duration cannot exceed ${MAX_TRIP_DAYS} days`,
+      });
+    }
+  });
 
 export type TripInput = z.infer<typeof TripInputSchema>;
 
@@ -240,6 +285,14 @@ export const TripContextSchema = z.object({
   places: PlaceResultSchema.optional(),
   itinerary: ItineraryResultSchema.optional(),
   budget: BudgetResultSchema.optional(),
+  // Affiliate deep-links from live pricing (Travelpayouts). Present only when a
+  // live quote was fetched; the UI renders "Book" buttons when set.
+  bookingLinks: z
+    .object({
+      flight: z.string().optional(),
+      hotel: z.string().optional(),
+    })
+    .optional(),
 });
 
 export type TripContext = z.infer<typeof TripContextSchema>;

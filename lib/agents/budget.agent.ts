@@ -51,6 +51,8 @@ interface BudgetInput {
   itinerary: ItineraryResult;
   places: PlaceResult;
   seasonalMultiplier: "low" | "medium" | "high";
+  liveFlightData?: any;
+  liveHotelData?: any;
 }
 
 interface PriceAnchors {
@@ -59,11 +61,147 @@ interface PriceAnchors {
   activities: number;
   food: { min: number; avg: number; max: number };
   transport: { min: number; avg: number; max: number };
+  visa: { min: number; avg: number; max: number } | null; // null = unknown, let LLM decide
   usdRate: number;
   nightsCount: number;
   routeType: string;
   rateSource: "live" | "fallback";
   costsSource: string;
+}
+
+// ─── Visa knowledge base ────────────────────────────────────────────────────
+
+/**
+ * Hard-coded visa requirements for common origin→destination region pairs.
+ * The LLM is unreliable for visa facts so we pre-compute a hint.
+ *
+ * Structure: origin country keyword → destination region → { required, approxUSD }
+ * approxUSD = 0 means free/on-arrival.
+ */
+const VISA_HINTS: Array<{
+  originKeywords: string[];
+  destinationKeywords: string[];
+  required: boolean;
+  approxUSD: number;
+  note: string;
+}> = [
+  // Indian passport — Schengen (Italy, France, Germany, Spain, etc.)
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["italy", "naples", "rome", "milan", "venice", "florence",
+      "france", "paris", "germany", "berlin", "munich", "frankfurt",
+      "spain", "barcelona", "madrid", "greece", "athens", "amsterdam",
+      "netherlands", "portugal", "lisbon", "schengen", "austria", "vienna",
+      "czech", "prague", "switzerland", "zurich", "belgium", "brussels",
+      "sweden", "stockholm", "norway", "oslo", "denmark", "copenhagen",
+      "finland", "helsinki", "poland", "warsaw"],
+    required: true,
+    approxUSD: 90, // Schengen visa ~€80 ≈ $90
+    note: "Schengen visa required for Indian passport holders (~€80 / ~$90 USD)",
+  },
+  // Indian passport — UK
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["uk", "united kingdom", "london", "england", "britain"],
+    required: true,
+    approxUSD: 130, // UK Standard Visitor Visa ~£115 ≈ $130
+    note: "UK Standard Visitor Visa required for Indian passport holders (~£115 / ~$130 USD)",
+  },
+  // Indian passport — USA
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["usa", "united states", "america", "new york", "los angeles", "chicago", "miami", "san francisco"],
+    required: true,
+    approxUSD: 185, // US B1/B2 visa ~$185
+    note: "US B1/B2 tourist visa required for Indian passport holders (~$185 USD)",
+  },
+  // Indian passport — Australia
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["australia", "sydney", "melbourne", "brisbane", "perth"],
+    required: true,
+    approxUSD: 145, // Australian Tourist Visa ~AUD 145 ≈ $95 USD
+    note: "Australian Tourist Visa (subclass 600) required for Indian passport holders (~AUD 145 / ~$95 USD)",
+  },
+  // Indian passport — Canada
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["canada", "toronto", "vancouver"],
+    required: true,
+    approxUSD: 100, // Canada Tourist Visa ~CAD 100 ≈ $75 USD
+    note: "Canadian Temporary Resident Visa required for Indian passport holders (~CAD 100 / ~$75 USD)",
+  },
+  // Indian passport — Japan
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["japan", "tokyo", "osaka", "kyoto", "fukuoka"],
+    required: true,
+    approxUSD: 0, // Japan visa is free to apply but requires embassy visit
+    note: "Japan tourist visa required for Indian passport holders (application fee is free but proof of funds required)",
+  },
+  // Indian passport — SEA (mostly visa-free or on-arrival)
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["thailand", "bangkok", "phuket", "chiang mai"],
+    required: false,
+    approxUSD: 0,
+    note: "Thailand: visa-free for Indian passport holders up to 30 days",
+  },
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["bali", "indonesia", "jakarta"],
+    required: false,
+    approxUSD: 0,
+    note: "Indonesia: visa-free on arrival for Indian passport holders up to 30 days",
+  },
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["singapore"],
+    required: false,
+    approxUSD: 0,
+    note: "Singapore: visa-free for Indian passport holders up to 30 days",
+  },
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["malaysia", "kuala lumpur"],
+    required: false,
+    approxUSD: 0,
+    note: "Malaysia: visa-free for Indian passport holders up to 30 days",
+  },
+  {
+    originKeywords: ["india", "indian"],
+    destinationKeywords: ["dubai", "uae", "abu dhabi"],
+    required: false,
+    approxUSD: 0,
+    note: "UAE: visa on arrival available for Indian passport holders (~$100 but often arranged by airlines)",
+  },
+];
+
+interface VisaHint {
+  required: boolean;
+  approxUSD: number;
+  note: string;
+}
+
+function getVisaHint(
+  origin: string,
+  destination: string,
+): VisaHint | null {
+  const orig = origin.toLowerCase();
+  const dest = destination.toLowerCase();
+
+  for (const hint of VISA_HINTS) {
+    const matchOrigin = hint.originKeywords.some((k) => orig.includes(k));
+    const matchDest   = hint.destinationKeywords.some((k) => dest.includes(k));
+    if (matchOrigin && matchDest) {
+      return {
+        required:   hint.required,
+        approxUSD:  hint.approxUSD,
+        note:       hint.note,
+      };
+    }
+  }
+  return null; // unknown — let LLM decide
 }
 
 // ─── Single currency converter ────────────────────────────────────────────────
@@ -143,7 +281,7 @@ async function buildPriceAnchors(input: BudgetInput): Promise<PriceAnchors> {
 
   // ── Step 2: Remaining tools in parallel; flight tool receives the live
   //            rate so it uses the same conversion as food/transport/hotels.
-  const [flightData, dailyCosts] = await Promise.all([
+  const [flightDataFallback, dailyCosts] = await Promise.all([
     Promise.resolve(
       getDetailedFlightEstimate({
         origin:            input.origin,
@@ -167,35 +305,58 @@ async function buildPriceAnchors(input: BudgetInput): Promise<PriceAnchors> {
   ]);
 
   // ── Flights ───────────────────────────────────────────────────────────────
-  // Flight tool receives tgt currency so should return tgt values, but guard
-  // against implementations that always return USD regardless of the param.
-  const flightSrc = flightData.currency ?? tgt;
-  const flight = {
-    min: convert(flightData.pricePerPerson.min, flightSrc, tgt, usdRate),
-    avg: convert(flightData.pricePerPerson.average, flightSrc, tgt, usdRate),
-    max: convert(flightData.pricePerPerson.max, flightSrc, tgt, usdRate),
-  };
+  let flight;
+  let flightSrc;
+  let flightRouteType = flightDataFallback.routeType;
+
+  if (input.liveFlightData && input.liveFlightData.pricePerPerson) {
+      flightSrc = input.liveFlightData.currency;
+      flight = {
+        min: convert(input.liveFlightData.pricePerPerson.min, flightSrc, tgt, usdRate),
+        avg: convert(input.liveFlightData.pricePerPerson.average, flightSrc, tgt, usdRate),
+        max: convert(input.liveFlightData.pricePerPerson.max, flightSrc, tgt, usdRate),
+      };
+      console.log(`[Budget Agent] ✅ Using LIVE flight data!`);
+  } else {
+      flightSrc = flightDataFallback.currency ?? tgt;
+      flight = {
+        min: convert(flightDataFallback.pricePerPerson.min, flightSrc, tgt, usdRate),
+        avg: convert(flightDataFallback.pricePerPerson.average, flightSrc, tgt, usdRate),
+        max: convert(flightDataFallback.pricePerPerson.max, flightSrc, tgt, usdRate),
+      };
+      console.log(`[Budget Agent] ⚠ Using FALLBACK flight data.`);
+  }
 
   // ── Accommodation ─────────────────────────────────────────────────────────
-  // Walk tier priority until we find a non-empty array.
-  // Using .find() instead of ?? so that an existing-but-empty array falls through.
-  const tierPriority = [input.budgetLevel, "medium", "low", "luxury"] as const;
-  const hotelTier =
-    tierPriority
-      .map((t) => input.places.hotelRecommendations[t])
-      .find((arr) => Array.isArray(arr) && arr.length > 0) ?? [];
+  let accommodationPerNight = 0;
+  let hotelTierStr = "none";
+  
+  if (input.liveHotelData) {
+      accommodationPerNight = convert(input.liveHotelData.average, input.liveHotelData.currency, tgt, usdRate);
+      hotelTierStr = "live_rapidapi";
+      console.log(`[Budget Agent] ✅ Using LIVE hotel data!`);
+  } else {
+      const tierPriority = [input.budgetLevel, "medium", "low", "luxury"] as const;
+      const hotelTier =
+        tierPriority
+          .map((t) => input.places.hotelRecommendations[t])
+          .find((arr) => Array.isArray(arr) && arr.length > 0) ?? [];
 
-  const hotelPricesInTarget = hotelTier
-    .map((h) => convert(h.pricePerNight, h.currency ?? "USD", tgt, usdRate))
-    .filter((p) => p > 0);
+      const hotelPricesInTarget = hotelTier
+        .map((h) => convert(h.pricePerNight, h.currency ?? "USD", tgt, usdRate))
+        .filter((p) => p > 0);
 
-  const accommodationPerNight =
-    hotelPricesInTarget.length > 0
-      ? Math.round(
-          hotelPricesInTarget.reduce((s, p) => s + p, 0) /
-            hotelPricesInTarget.length,
-        )
-      : 0;
+      accommodationPerNight =
+        hotelPricesInTarget.length > 0
+          ? Math.round(
+              hotelPricesInTarget.reduce((s, p) => s + p, 0) /
+                hotelPricesInTarget.length,
+            )
+          : 0;
+          
+      hotelTierStr = hotelTier.map((h) => h.currency ?? "USD").join(", ") || "none";
+      console.log(`[Budget Agent] ⚠ Using FALLBACK hotel data.`);
+  }
   const accommodationTotal = accommodationPerNight * nightsCount;
 
   // ── Food & transport ──────────────────────────────────────────────────────
@@ -220,18 +381,32 @@ async function buildPriceAnchors(input: BudgetInput): Promise<PriceAnchors> {
     usdRate,
   );
 
+  // ── Visa (known-policy hint) ────────────────────────────────────────────
+  const visaHint = getVisaHint(input.origin, input.destination);
+  const visa = visaHint
+    ? visaHint.required
+      ? {
+          min: convert(visaHint.approxUSD, "USD", tgt, usdRate),
+          avg: convert(visaHint.approxUSD, "USD", tgt, usdRate),
+          max: convert(visaHint.approxUSD, "USD", tgt, usdRate),
+        }
+      : { min: 0, avg: 0, max: 0 }
+    : null;
+
   // ── Audit log ─────────────────────────────────────────────────────────────
   console.log(
     `[Budget Agent] Anchors → ${tgt}  (1 USD = ${usdRate} ${tgt}, source: ${rateSource})\n` +
       `  ✈  Flight/person  : ${flight.min}–${flight.max}  avg=${flight.avg}  [tool: ${flightSrc}]\n` +
       `  🏨 Hotel/night    : ${accommodationPerNight}  × ${nightsCount} nights = ${accommodationTotal}` +
-      `  [hotel currencies: ${hotelTier.map((h) => h.currency ?? "USD").join(", ") || "none"}]\n` +
+      `  [hotel currencies: ${hotelTierStr}]\n` +
       `  🎟  Activities     : ${activitiesTotal}  [itinerary: ${activitySrc}]\n` +
+      `  🛂 Visa hint      : ${visa ? `${visa.avg} ${tgt}` : "unknown (LLM decides)"}${visaHint ? `  [${visaHint.note}]` : ""}\n` +
       `  🍽  Food (total)   : ${food.min}–${food.max}  avg=${food.avg}  [daily-costs: ${dailySrc}]\n` +
       `  🚌 Transport (tot): ${transport.min}–${transport.max}  avg=${transport.avg}`,
   );
 
   return {
+    visa,
     flight,
     accommodation: {
       total: accommodationTotal,
@@ -242,7 +417,7 @@ async function buildPriceAnchors(input: BudgetInput): Promise<PriceAnchors> {
     transport,
     usdRate,
     nightsCount,
-    routeType: flightData.routeType,
+    routeType: flightRouteType,
     rateSource,
     costsSource: dailyCosts.source,
   };
@@ -272,6 +447,16 @@ function generateBudgetPrompt(input: BudgetInput, a: PriceAnchors): string {
         ? 0.09
         : 0.07;
   const miscGuide = Math.round(nonFlightTotal * miscPct);
+  const visaTask = a.visa
+    ? `1. visa         : PRE-CALCULATED and LOCKED. Use exactly min=${a.visa.min}, average=${a.visa.avg}, max=${a.visa.max}.`
+    : `1. visa         : Does ${input.origin} require a visa for ${input.destination}?
+                  Visa-free / on-arrival → 0. Otherwise estimate fee in ${input.currency}.`;
+  const visaSeed = a.visa
+    ? `{"min": ${a.visa.min}, "average": ${a.visa.avg}, "max": ${a.visa.max}}`
+    : `{"min": 0, "average": 0, "max": 0}`;
+  const visaRule = a.visa
+    ? `3. Do NOT change visa (locked) or any anchored category. Only fill miscellaneous.min/average/max`
+    : `3. Only fill visa.min/average/max and miscellaneous.min/average/max`;
 
   return `You are a travel budget expert. OUTPUT ONLY VALID JSON — no markdown, no code fences, no extra text.
 
@@ -291,8 +476,7 @@ localTransport : min=${a.transport.min}  avg=${a.transport.avg}  max=${a.transpo
 activities     : ${a.activities}  [from itinerary]
 
 === YOUR TASK — fill ONLY these 2 fields (in ${input.currency}) ===
-1. visa         : Does ${input.origin} require a visa for ${input.destination}?
-                  Visa-free / on-arrival → 0. Otherwise estimate fee in ${input.currency}.
+${visaTask}
 2. miscellaneous: Tips, souvenirs, laundry, SIM card, contingency.
                   Guide for a ${input.budgetLevel} traveler: ~${miscGuide} ${input.currency}.
 
@@ -305,7 +489,7 @@ Return ONLY this JSON (every number must be in ${input.currency}):
     "food":           {"min": ${a.food.min},            "average": ${a.food.avg},            "max": ${a.food.max}},
     "localTransport": {"min": ${a.transport.min},       "average": ${a.transport.avg},       "max": ${a.transport.max}},
     "activities":     {"min": ${a.activities},          "average": ${a.activities},          "max": ${a.activities}},
-    "visa":           {"min": 0, "average": 0, "max": 0},
+    "visa":           ${visaSeed},
     "miscellaneous":  {"min": 0, "average": 0, "max": 0}
   },
   "totalEstimatedCostPerPerson": {"min": 0, "average": 0, "max": 0},
@@ -317,15 +501,18 @@ Return ONLY this JSON (every number must be in ${input.currency}):
   },
   "dailyAverageCostPerPerson": 0,
   "budgetStatus": "within",
-  "assumptions": []
+  "assumptions": [
+    "Assumption 1 as a plain string",
+    "Assumption 2 as a plain string"
+  ]
 }
 
 STRICT RULES:
 1. budgetStatus must be: within | slightly_above | over
 2. Do NOT change flights / accommodation / food / localTransport / activities — copy the anchor values exactly
-3. Only fill visa.min/average/max and miscellaneous.min/average/max
+${visaRule}
 4. Leave totalEstimatedCostPerPerson, totalEstimatedCostForGroup, dailyAverageCostPerPerson as 0 — recalculated server-side
-5. Write 5–8 specific assumptions: route type, hotel tier, food source (${a.costsSource}), visa policy, group size, currency (${input.currency})`;
+5. Write 5–8 specific assumptions AS PLAIN STRINGS IN AN ARRAY (NOT objects): route type, hotel tier, food source (${a.costsSource}), visa policy, group size, currency (${input.currency})`;
 }
 
 // ─── Math corrector ───────────────────────────────────────────────────────────
@@ -390,12 +577,20 @@ function correctBudgetMath(
     average: Math.max(0, Number(cat?.average) || 0),
     max: Math.max(0, Number(cat?.max) || 0),
   });
-  bd.visa = sanitize(bd.visa);
+  bd.visa = a.visa
+    ? { min: a.visa.min, average: a.visa.avg, max: a.visa.max }
+    : sanitize(bd.visa);
   bd.miscellaneous = sanitize(bd.miscellaneous);
 
   // Enforce min ≤ average ≤ max for LLM-filled fields
-  for (const key of ["visa", "miscellaneous"] as const) {
+  for (const key of ["miscellaneous"] as const) {
     const cat = bd[key];
+    cat.min = Math.min(cat.min, cat.average);
+    cat.max = Math.max(cat.max, cat.average);
+  }
+
+  if (!a.visa) {
+    const cat = bd.visa;
     cat.min = Math.min(cat.min, cat.average);
     cat.max = Math.max(cat.max, cat.average);
   }

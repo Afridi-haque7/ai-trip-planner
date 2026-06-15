@@ -37,6 +37,22 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  // ── Stripe billing linkage ────────────────────────────────────────────────
+  // Set by the checkout flow / webhook. subscriptionStatus mirrors Stripe's
+  // status (active, trialing, past_due, canceled, …) for display + gating.
+  stripeCustomerId: {
+    type: String,
+    default: null,
+    index: true,
+  },
+  stripeSubscriptionId: {
+    type: String,
+    default: null,
+  },
+  subscriptionStatus: {
+    type: String,
+    default: null,
+  },
   // Monthly usage tracking
   // usageResetMonth stores "YYYY-MM" of the last reset (e.g. "2026-03").
   // When the current month != usageResetMonth, the counter is reset atomically.

@@ -3,6 +3,7 @@
 import { createContext, useState, useCallback } from "react";
 
 export const TripFormContext = createContext();
+const MAX_TRIP_DAYS = 10;
 
 export const TripFormProvider = ({ children }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -54,6 +55,13 @@ export const TripFormProvider = ({ children }) => {
         const end = new Date(formData.endDate);
         if (end <= start) {
           newErrors.endDate = "End date must be after start date";
+        } else {
+          const tripDays =
+            Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+          if (tripDays > MAX_TRIP_DAYS) {
+            newErrors.endDate = `Trip duration cannot exceed ${MAX_TRIP_DAYS} days`;
+          }
         }
       }
       if (!formData.budget) {

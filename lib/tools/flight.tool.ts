@@ -138,24 +138,57 @@ const IATA_MAP: Record<string, string> = {
   "amsterdam": "AMS",
   "frankfurt": "FRA",
   "rome": "FCO",
+  "naples": "NAP",
+  "milan": "MXP",
+  "venice": "VCE",
+  "florence": "FLR",
+  "bologna": "BLQ",
+  "catania": "CTA",
+  "palermo": "PMO",
+  "bari": "BRI",
   "barcelona": "BCN",
   "madrid": "MAD",
+  "seville": "SVQ",
+  "valencia": "VLC",
+  "malaga": "AGP",
   "zurich": "ZRH",
   "vienna": "VIE",
+  "salzburg": "SZG",
   "prague": "PRG",
   "athens": "ATH",
+  "thessaloniki": "SKG",
   "lisbon": "LIS",
+  "porto": "OPO",
   "oslo": "OSL",
   "stockholm": "ARN",
   "copenhagen": "CPH",
+  "helsinki": "HEL",
   "moscow": "SVO",
-  "milan": "MXP",
+  "st petersburg": "LED",
   "brussels": "BRU",
   "budapest": "BUD",
   "warsaw": "WAW",
+  "krakow": "KRK",
   "dublin": "DUB",
   "edinburgh": "EDI",
+  "manchester": "MAN",
   "geneva": "GVA",
+  "nice": "NCE",
+  "lyon": "LYS",
+  "dusseldorf": "DUS",
+  "hamburg": "HAM",
+  "munich": "MUC",
+  "berlin": "BER",
+  "reykjavik": "KEF",
+  "zagreb": "ZAG",
+  "dubrovnik": "DBV",
+  "split": "SPU",
+  "bucharest": "OTP",
+  "sofia": "SOF",
+  "vilnius": "VNO",
+  "riga": "RIX",
+  "tallinn": "TLL",
+  "belgrade": "BEG",
   // Americas
   "new york": "JFK", "new york city": "JFK",
   "los angeles": "LAX",
@@ -198,12 +231,12 @@ const SEA       = new Set(["DPS","BKK","SIN","KUL","CGK","MNL","SGN","HAN","HKT"
 const EAST_ASIA = new Set(["NRT","KIX","PEK","PVG","HKG","ICN","TPE","CAN","SZX","FUK"]);
 const S_ASIA    = new Set(["KTM","DAC","KHI","LHE","ISB","MLE","PBH"]);
 const MIDEAST   = new Set(["DXB","AUH","DOH","RUH","IST","MCT","KWI","BAH","TLV","AMM"]);
-const EUROPE    = new Set(["LHR","CDG","AMS","FRA","FCO","BCN","MAD","ZRH","VIE","PRG","ATH","LIS","OSL","ARN","CPH","SVO","MXP","BRU","BUD","WAW","DUB","EDI","GVA"]);
+const EUROPE    = new Set(["LHR","CDG","AMS","FRA","FCO","NAP","MXP","VCE","FLR","BLQ","CTA","PMO","BRI","BCN","MAD","SVQ","VLC","AGP","ZRH","VIE","SZG","PRG","ATH","SKG","LIS","OPO","OSL","ARN","CPH","HEL","SVO","LED","BRU","BUD","WAW","KRK","DUB","EDI","MAN","GVA","NCE","LYS","DUS","HAM","MUC","BER","KEF","ZAG","DBV","SPU","OTP","SOF","VNO","RIX","TLL","BEG"]);
 const AMERICAS  = new Set(["JFK","LAX","YYZ","YVR","MEX","GRU","EZE","MIA","ORD","SFO","IAD","BOS","SEA","DFW","IAH","LIM","BOG","SCL"]);
 const OCEANIA   = new Set(["SYD","MEL","BNE","AKL","PER"]);
 const AFRICA    = new Set(["CAI","NBO","JNB","CPT","CMN","LOS","ADD","ACC"]);
 
-function resolveIata(cityName: string): string | null {
+export function resolveIata(cityName: string): string | null {
   const city = cityName.split(",")[0].trim().toLowerCase();
   if (IATA_MAP[city]) return IATA_MAP[city];
   for (const [key, code] of Object.entries(IATA_MAP)) {

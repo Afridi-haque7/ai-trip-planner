@@ -13,6 +13,13 @@ const nextConfig = {
       "s3-media0.fl.yelpcdn.com",
       "www.jetsetter.com",
       "media.architecturaldigest.com",
+      // Image tool v7 sources
+      "images.pexels.com",
+      "pixabay.com",
+      "cdn.pixabay.com",
+      "www.themealdb.com",
+      "picsum.photos",
+      "fastly.picsum.photos",
     ],
   },
   // Add security headers

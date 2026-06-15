@@ -93,12 +93,20 @@ const StatusBadge = ({ status }) => {
       label: "Over Budget",
       cls: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
     },
+    slightly_above: {
+      label: "Slightly Above Budget",
+      cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    },
+    "slightly above": {
+      label: "Slightly Above Budget",
+      cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+    },
     tight: {
-      label: "Tight Budget",
+      label: "Slightly Above Budget",
       cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
     },
   };
-  const { label, cls } = map[status] ?? map.within;
+  const { label, cls } = map[status?.toLowerCase()] ?? map.within;
   return (
     <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${cls}`}>
       {label}

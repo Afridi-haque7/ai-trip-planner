@@ -309,9 +309,10 @@ Return ONLY this exact JSON structure:
         "description": "Brief accurate description",
         "location": "Neighborhood name",
         "pricePerNight": ${Math.round(convertCurrencySync(
-          parseInt((HOTEL_RATES_USD[detectRegion("")] ?? HOTEL_RATES_USD.default).low.split("–")[0]) || 40,
+          parseInt((HOTEL_RATES_USD[detectRegion(input.destination)] ?? HOTEL_RATES_USD.default).low.split("–")[0]) || 40,
           "USD", input.currency
         ))},
+        "currency": "${input.currency}",
         "rating": 3.9,
         "reviewsCount": 380,
         "amenities": ["WiFi", "AC"]
@@ -323,9 +324,10 @@ Return ONLY this exact JSON structure:
         "description": "Brief accurate description",
         "location": "Neighborhood name",
         "pricePerNight": ${Math.round(convertCurrencySync(
-          parseInt((HOTEL_RATES_USD[detectRegion("")] ?? HOTEL_RATES_USD.default).medium.split("–")[0]) || 120,
+          parseInt((HOTEL_RATES_USD[detectRegion(input.destination)] ?? HOTEL_RATES_USD.default).medium.split("–")[0]) || 120,
           "USD", input.currency
         ))},
+        "currency": "${input.currency}",
         "rating": 4.3,
         "reviewsCount": 750,
         "amenities": ["WiFi", "Pool", "Breakfast"]
@@ -337,9 +339,10 @@ Return ONLY this exact JSON structure:
         "description": "Brief accurate description",
         "location": "Neighborhood name",
         "pricePerNight": ${Math.round(convertCurrencySync(
-          parseInt((HOTEL_RATES_USD[detectRegion("")] ?? HOTEL_RATES_USD.default).luxury.split("–")[0]) || 350,
+          parseInt((HOTEL_RATES_USD[detectRegion(input.destination)] ?? HOTEL_RATES_USD.default).luxury.split("–")[0]) || 350,
           "USD", input.currency
         ))},
+        "currency": "${input.currency}",
         "rating": 4.8,
         "reviewsCount": 1200,
         "amenities": ["Pool", "Spa", "Concierge", "Fine Dining"]

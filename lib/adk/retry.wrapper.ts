@@ -89,11 +89,21 @@ export async function withRetry<T>(
     } catch (error) {
       lastError = error instanceof Error ? error.message : String(error);
 
-      // Determine if error is retryable
+      // Determine if error is retryable.
+      // A transient rate limit (too many requests/minute) IS worth retrying with
+      // backoff — but a hard "request too large" / "reduce your message size" is
+      // NOT: the same oversized request will fail again, so we fail fast.
+      const msg = lastError;
+      const isRequestTooLarge =
+        /request too large|reduce your message size/i.test(msg);
+      const isRateLimit =
+        !isRequestTooLarge &&
+        /rate.?limit|too many requests|\b429\b/i.test(msg);
       const isRetryable =
         error instanceof z.ZodError || // Schema validation failed
         (error instanceof Error && error.message.includes("fetch")) || // Network error
-        (error instanceof Error && error.message.includes("JSON")); // JSON parse error
+        (error instanceof Error && error.message.includes("JSON")) || // JSON parse error
+        isRateLimit; // Transient provider throttling
 
       if (!isRetryable) {
         console.error(

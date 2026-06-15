@@ -12,6 +12,8 @@ export async function POST(request) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+  let tripId = "";
+  let ownerUserId = "";
 
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -32,8 +34,11 @@ export async function POST(request) {
   try {
     await dbConnect();
 
-    // Session email is the source of truth — no need to trust client-sent userId
-    const userExists = await User.findOne({ email: session.user.email });
+    // Session email is the source of truth
+    const userExists = await User.findOne(
+      { email: session.user.email },
+      { _id: 1 },
+    ).lean();
     if (!userExists) {
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
@@ -41,72 +46,73 @@ export async function POST(request) {
       });
     }
 
-    const tripId = tripContext.tripId || crypto.randomUUID();
+    ownerUserId = String(userExists._id);
+    tripId = tripContext.tripId || crypto.randomUUID();
 
-    const existingTrip = await Trip.findOne({ tripId });
-    if (existingTrip) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          tripId: existingTrip.tripId,
-          _id: existingTrip._id,
-          message: "Trip already exists",
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
-    const newTrip = new Trip({
-      tripId,
-      userId: userExists._id,
-      ...tripContext,
-    });
-
-    const savedTrip = await newTrip.save();
-
-    await User.findByIdAndUpdate(
-      userExists._id,
-      { $push: { history: newTrip.tripId } },
-      { new: true },
+    // Safe upsert logic:
+    const resultTrip = await Trip.findOneAndUpdate(
+        { tripId, userId: userExists._id },
+        { $set: tripContext },
+        { new: true }
     );
 
+    if (!resultTrip) {
+        // It didn't exist for US. We should try creating.
+        try {
+            const newTrip = new Trip({
+                tripId,
+                userId: userExists._id,
+                ...tripContext,
+            });
+            const created = await newTrip.save();
+            await User.findByIdAndUpdate(
+              userExists._id,
+              { $push: { history: created.tripId } },
+              { new: true }
+            );
+            return new Response(
+              JSON.stringify({
+                success: true,
+                tripId: created.tripId,
+                _id: created._id,
+                message: "Trip created successfully",
+              }),
+              { status: 201, headers: { "Content-Type": "application/json" } }
+            );
+        } catch (e) {
+            if (e?.code === 11000) {
+               // Must belong to someone else
+               return new Response(
+                 JSON.stringify({ error: "Trip ID conflict. Please retry." }),
+                 { status: 409, headers: { "Content-Type": "application/json" } }
+               );
+            }
+            throw e;
+        }
+    }
+
+    // It existed and we owned it. It is now updated.
     return new Response(
       JSON.stringify({
         success: true,
-        tripId: newTrip.tripId,
-        _id: savedTrip._id,
-        message: "Trip saved successfully",
+        tripId: resultTrip.tripId,
+        _id: resultTrip._id,
+        message: "Trip updated successfully",
       }),
-      {
-        status: 201,
-        headers: { "Content-Type": "application/json" },
-      },
+      { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("[Store Trip] Error:", error.message);
-
-    if (error.code === 11000) {
-      return new Response(
-        JSON.stringify({ error: "Trip with this ID already exists" }),
-        {
-          status: 409,
-          headers: { "Content-Type": "application/json" },
-        },
-      );
-    }
-
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("[Store Trip] Error:", errorMessage);
     return new Response(
       JSON.stringify({
         error: "Internal Server Error",
-        details: error.message,
+        details: errorMessage,
       }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      },
+      }
     );
   }
 }

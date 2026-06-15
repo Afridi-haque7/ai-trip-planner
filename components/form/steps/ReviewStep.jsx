@@ -27,19 +27,19 @@ export default function ReviewStep() {
     if (formData.startDate && formData.endDate) {
       const start = new Date(formData.startDate);
       const end = new Date(formData.endDate);
-      return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
     }
     return 0;
   };
 
   const reviewItems = [
     {
-      icon: "�",
+      icon: "🛫",
       label: "Origin",
       value: formData.origin || "Not selected",
     },
     {
-      icon: "�📍",
+      icon: "📍",
       label: "Destination",
       value: formData.location || "Not selected",
     },

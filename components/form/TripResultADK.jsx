@@ -6,6 +6,7 @@ import Itinerary from "@/components/form/results/Itinerary";
 import Attractions from "@/components/form/results/Attractions";
 import Budget from "@/components/form/results/Budget";
 import Foods from "@/components/form/results/Foods";
+import Hotels from "@/components/form/results/Hotels";
 
 function TripResultADK({ data }) {
   if (!data || !data.input) {
@@ -57,6 +58,13 @@ function TripResultADK({ data }) {
                 </div>
               )}
             </div>
+
+            {/* Hotels Component */}
+            {hotelRecommendations && hotelRecommendations.length > 0 && (
+              <div className="flex w-full">
+                <Hotels hotels={hotelRecommendations} destination={input?.destination} />
+              </div>
+            )}
 
             {/* Attractions Component */}
             <div className="flex flex-col lg:flex-row gap-4">

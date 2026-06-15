@@ -1,5 +1,6 @@
 export const runtime = "nodejs";
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 import { runTripPipeline, getPipelineStatus } from "@/lib/adk/orchestrator";
 import { TripInputSchema } from "@/lib/adk/schemas";
@@ -8,6 +9,9 @@ import User from "@/models/User";
 import { getAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { checkAndIncrementUsage } from "@/lib/usageGate";
+import { getCachedTrip, setCachedTrip } from "@/lib/cache";
+import { features } from "@/lib/env";
+import { rateLimit, tooManyRequests } from "@/lib/ratelimit";
 
 /**
  * POST /api/generate-trip
@@ -43,6 +47,13 @@ export async function POST(request) {
         { success: false, error: "Unauthorized" },
         { status: 401 }
       );
+    }
+
+    // ── Burst rate limit (above the monthly quota): max 10 generations/min ─────
+    const rl = await rateLimit(`gen:${session.user.email}`, 10, 60);
+    if (!rl.allowed) {
+      console.warn("[API] Rate limit hit for", session.user.email);
+      return tooManyRequests(rl);
     }
 
     const body = await request.json();
@@ -93,7 +104,21 @@ export async function POST(request) {
       currency: tripInput.currency,
     });
 
-    // ── 2. Usage gate — must happen BEFORE the pipeline to prevent cost ────────
+    // ── 2. Cache fast-path — identical popular searches skip the pipeline ──────
+    // A cache hit returns a previously-generated plan and does NOT consume the
+    // user's monthly quota (it's a cheap read, not an expensive generation).
+    if (features.cache()) {
+      const cached = await getCachedTrip(tripInput);
+      if (cached) {
+        console.log("[API] Cache HIT for", tripInput.destination);
+        return Response.json(
+          { success: true, context: cached, cached: true },
+          { status: 200, headers: { "X-Cache": "HIT" } }
+        );
+      }
+    }
+
+    // ── 3. Usage gate — must happen BEFORE the pipeline to prevent cost ────────
     await dbConnect();
     const dbUser = await User.findOne(
       { email: session.user.email },
@@ -148,6 +173,16 @@ export async function POST(request) {
       getPipelineStatus(result.metadata || {})
     );
 
+    // Cache only a COMPLETE plan (itinerary + budget present) so a partial or
+    // degraded result is never served from cache on later identical searches.
+    if (
+      features.cache() &&
+      result.context?.itinerary &&
+      result.context?.budget
+    ) {
+      await setCachedTrip(tripInput, result.context);
+    }
+
     // Return successful result
     return Response.json(
       {
@@ -155,7 +190,7 @@ export async function POST(request) {
         context: result.context,
         metadata: result.metadata,
       },
-      { status: 200 }
+      { status: 200, headers: { "X-Cache": "MISS" } }
     );
   } catch (error) {
     const errorMessage =

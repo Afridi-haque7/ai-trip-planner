@@ -4,7 +4,11 @@ import { useRouter } from "next/navigation";
 import { pricingPlans } from "@/constants";
 import { Check, X, Zap, Star, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 import Link from "next/link";
+
+// Card index → internal plan name. Index 0 (Free) has no checkout.
+const PLAN_BY_INDEX = { 1: "basic", 2: "premium" };
 
 const PLAN_META = [
   {
@@ -110,7 +114,36 @@ function FAQ() {
 
 export default function Pricing() {
   const router = useRouter();
+  const [loadingPlan, setLoadingPlan] = useState(null);
   const handleTryBuilder = () => router.push(`/create-trip/${crypto.randomUUID()}`);
+
+  // Start a Stripe Checkout for a paid plan. Falls back to login if the user
+  // isn't authenticated yet.
+  const handleCheckout = async (plan) => {
+    try {
+      setLoadingPlan(plan);
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      if (res.status === 401) {
+        router.push("/login?redirect=/pricing");
+        return;
+      }
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.error || "Could not start checkout. Please try again.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full">
       {/* Hero */}
@@ -228,20 +261,42 @@ export default function Pricing() {
 
                   {/* CTA */}
                   <div className="mt-auto pt-6">
-                    <Button
-                      asChild
-                      className={`w-full font-semibold ${
+                    {(() => {
+                      const ctaClass = `w-full font-semibold ${
                         meta.highlight
                           ? "bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 text-white border-0"
                           : index === 2
                             ? "bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white border-0"
                             : ""
-                      }`}
-                      variant={meta.ctaVariant}
-                      size="lg"
-                    >
-                      <Link href="/login?redirect=/dashboard">{meta.cta}</Link>
-                    </Button>
+                      }`;
+                      const plan = PLAN_BY_INDEX[index];
+                      // Free plan → signup link; paid plans → Stripe checkout.
+                      if (!plan) {
+                        return (
+                          <Button
+                            asChild
+                            className={ctaClass}
+                            variant={meta.ctaVariant}
+                            size="lg"
+                          >
+                            <Link href="/login?redirect=/dashboard">
+                              {meta.cta}
+                            </Link>
+                          </Button>
+                        );
+                      }
+                      return (
+                        <Button
+                          className={ctaClass}
+                          variant={meta.ctaVariant}
+                          size="lg"
+                          disabled={loadingPlan !== null}
+                          onClick={() => handleCheckout(plan)}
+                        >
+                          {loadingPlan === plan ? "Redirecting…" : meta.cta}
+                        </Button>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

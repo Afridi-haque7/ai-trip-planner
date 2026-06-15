@@ -15,6 +15,9 @@ import { weatherAgent } from "@/lib/agents/weather.agent";
 import { placeAgent } from "@/lib/agents/place.agent";
 import { itineraryAgent } from "@/lib/agents/itinerary.agent";
 import { budgetAgent } from "@/lib/agents/budget.agent";
+import { fetchLiveFlights, fetchLiveHotels } from "@/lib/tools/live-pricing.tool";
+import { resolveIata } from "@/lib/tools/flight.tool";
+import { buildFlightBookingLink, buildHotelBookingLink } from "@/lib/tools/travelpayouts.tool";
 
 /**
  * ADK Trip Orchestrator
@@ -112,7 +115,14 @@ export async function runTripPipeline(input: TripInput): Promise<{
     console.log("[Orchestrator] Derived metadata:", context.derived);
 
     // ============ STAGE 1: PARALLEL (Weather + Place) ============
-    console.log("[Orchestrator] Stage 1: Running Weather & Place agents in parallel...");
+    console.log("[Orchestrator] Stage 1: Running Weather & Place agents & Live Pricing in parallel...");
+
+    const originIata = resolveIata(validatedInput.origin) || "DEL";
+    const destIata = resolveIata(validatedInput.destination) || "DEL";
+    
+    // Launch live fetches, they will safely abort after 6 seconds if hanging
+    const liveFlightPromise = fetchLiveFlights(originIata, destIata, validatedInput.startDate, validatedInput.numberOfPeople);
+    const liveHotelPromise = fetchLiveHotels(validatedInput.destination, validatedInput.startDate, validatedInput.endDate, validatedInput.numberOfPeople);
 
     const parallelResults = await withBatchRetry(
       [
@@ -134,6 +144,7 @@ export async function runTripPipeline(input: TripInput): Promise<{
               origin: validatedInput.origin,
               destination: validatedInput.destination,
               numberOfPeople: validatedInput.numberOfPeople,
+              currency: validatedInput.currency, // ← was missing! hotels were priced in USD fallback
               tripTheme: validatedInput.tripTheme,
             }),
           schema: PlaceResultSchema,
@@ -171,6 +182,31 @@ export async function runTripPipeline(input: TripInput): Promise<{
       parallelResults.WeatherAgent.attempts +
       parallelResults.PlaceAgent.attempts;
 
+    // Process live pricing results
+    const [liveFlights, liveHotels] = await Promise.all([liveFlightPromise, liveHotelPromise]);
+
+    // Thread affiliate booking deep-links (Travelpayouts) into the context so the
+    // UI can render "Book" buttons. Prefer the rich link from a live quote, else
+    // fall back to a generic search link (so buttons appear whenever a marker is
+    // configured, even if a price API returned nothing).
+    const flightLink =
+      (liveFlights as any)?.bookingLink ??
+      buildFlightBookingLink(originIata, destIata);
+    const hotelLink =
+      (liveHotels as any)?.bookingLink ??
+      buildHotelBookingLink(
+        validatedInput.destination,
+        validatedInput.startDate,
+        validatedInput.endDate,
+        validatedInput.numberOfPeople
+      );
+    if (flightLink || hotelLink) {
+      context.bookingLinks = {
+        ...(flightLink ? { flight: flightLink } : {}),
+        ...(hotelLink ? { hotel: hotelLink } : {}),
+      };
+    }
+
     // ============ STAGE 2: ITINERARY (Sequential) ============
     if (context.weather && context.places) {
       console.log("[Orchestrator] Stage 2: Running Itinerary agent...");
@@ -184,6 +220,7 @@ export async function runTripPipeline(input: TripInput): Promise<{
             numberOfPeople: validatedInput.numberOfPeople,
             startDate: validatedInput.startDate,
             endDate: validatedInput.endDate,
+            currency: validatedInput.currency, // ← was missing: activity costs defaulted to USD
             weather: context.weather!,
             places: context.places!,
             tripTheme: validatedInput.tripTheme,
@@ -227,6 +264,8 @@ export async function runTripPipeline(input: TripInput): Promise<{
             itinerary: context.itinerary!,
             places: context.places!,
             seasonalMultiplier: context.weather?.seasonalImpactOnCost || "medium",
+            liveFlightData: liveFlights,
+            liveHotelData: liveHotels,
           }),
         BudgetResultSchema,
         RETRY_CONFIG,
@@ -254,8 +293,21 @@ export async function runTripPipeline(input: TripInput): Promise<{
     console.log("[Orchestrator] Validating final context...");
     const finalContext = TripContextSchema.parse(context);
 
+    // A context that validates but has NO completed stages is an empty shell —
+    // do NOT report success (it would store/cache a blank trip). This happens
+    // when every agent fails, e.g. the LLM provider is rate-limited.
+    if (metadata.completedStages.length === 0) {
+      console.error("[Orchestrator] Pipeline produced no stages — failing.");
+      return {
+        success: false,
+        error:
+          "Trip generation failed — the AI provider may be rate-limited or unavailable. Please try again shortly.",
+        metadata,
+      };
+    }
+
     console.log(
-      "[Orchestrator] Pipeline completed successfully. Stages:",
+      "[Orchestrator] Pipeline completed. Stages:",
       metadata.completedStages
     );
 

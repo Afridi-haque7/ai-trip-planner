@@ -13,13 +13,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler";
-import {
-  setUserDetails,
-  setUserInitialized,
-  clearUser,
-  selectUserProfile,
-} from "@/lib/redux/slices/userSlice";
-import { setChats, clearChats } from "@/lib/redux/slices/chatsSlice";
+import { clearUser, selectUserProfile } from "@/lib/redux/slices/userSlice";
+import { clearChats } from "@/lib/redux/slices/chatsSlice";
 import { useRouter } from "next/navigation";
 
 const ProfileAvatar = ({}) => {
@@ -73,92 +68,10 @@ const ProfileAvatar = ({}) => {
 };
 
 function Navbar() {
+  // User bootstrap now lives in AuthProvider (runs once app-wide). The Navbar
+  // only reads auth state to decide which CTA to show.
   const { data: session } = useSession();
-  const dispatch = useDispatch();
   const router = useRouter();
-
-  useEffect(() => {
-    if (!session) return;
-
-    const name = session?.user?.name;
-    const email = session?.user?.email;
-    const googleId = session?.user?.googleId;
-    const profileImage = session?.user?.image;
-
-    const initializeUser = async () => {
-      try {
-        // Upsert user in DB on every login
-        const signUpRes = await fetch("/api/sign-up", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email }),
-        });
-
-        if (!signUpRes.ok) {
-          console.error("Failed to save user during sign-up");
-          return;
-        }
-
-        // Fetch full user details (subscription, history, _id)
-        const detailsRes = await fetch("/api/get-user-details", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-
-        if (!detailsRes.ok) {
-          console.error("Failed to fetch user details");
-          return;
-        }
-
-        const userDetails = await detailsRes.json();
-
-        // Store complete user profile in Redux
-        dispatch(
-          setUserDetails({
-            _id: userDetails._id || "",
-            name: userDetails.name || "",
-            email: userDetails.email || "",
-            googleId: googleId || "",
-            profileImage: profileImage || "",
-            chats: userDetails.history || [],
-            subscriptionPlan: userDetails.subscriptionPlan || "free",
-            subscriptionEndDate: userDetails.subscriptionEndDate || null,
-            monthlyTripCount: userDetails.monthlyTripCount ?? 0,
-          }),
-        );
-
-        // Fetch all trips and store in Redux
-        const tripIds = userDetails.history || [];
-        if (tripIds.length > 0) {
-          const allTrips = await Promise.all(
-            tripIds.map((tripId) =>
-              fetch("/api/get-trip", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ tripid: tripId }),
-              })
-                .then((res) => (res.ok ? res.json() : null))
-                .catch((err) => {
-                  console.error(`Failed to fetch trip ${tripId}:`, err);
-                  return null;
-                }),
-            ),
-          );
-          dispatch(setChats(allTrips.filter(Boolean)));
-        } else {
-          dispatch(setChats([]));
-        }
-
-        // Mark user data as fully loaded
-        dispatch(setUserInitialized(true));
-      } catch (error) {
-        console.error("Error initializing user data:", error);
-      }
-    };
-
-    initializeUser();
-  }, [session, dispatch]);
 
   return (
     <>

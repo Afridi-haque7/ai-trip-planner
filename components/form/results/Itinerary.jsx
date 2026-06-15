@@ -53,8 +53,9 @@ const ItineraryCard = ({ activity, currency = "USD" }) => {
             <div
               className="w-24 h-24 rounded-lg bg-cover bg-center shrink-0"
               style={{
-                backgroundImage:
-                  'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCbNXa2pBkgyX1APIjd-lBFZFoAmdL7r5LMJT5iQw_RwuhQMFK4X__KsmYpiu77Xqo4mbe4i0WpEkKYhvX_qbGfXdvnwVogEbeMcXgSsyu9UNdWktB6YrL6ZvsScDPlhTPcO6_cC4uXwCRPYcKhpu2iTaKAUVrunXaEmhkrABimgEpLRNi4SXJYY99DEWnDQ36uKwAghnLm_8KO3zSaAkwr2h6U-YcTCQg3Yxj9MYkqZSJWxzAtTEs70ekKvXldmkgURQLuGWjHXoZb")',
+                backgroundImage: `url("https://picsum.photos/seed/${encodeURIComponent(
+                  activity?.name || "activity"
+                )}/400/400")`,
               }}
             />
             <div className="flex flex-col gap-2 justify-center">
@@ -193,14 +194,13 @@ const DayThemeCard = ({
 };
 
 function Itinerary({
-  currentDay: propCurrentDay,
-  setCurrentDay: propSetCurrentDay,
+  currentDay = 1,
+  setCurrentDay,
   itinerary,
   currency = "USD",
 }) {
-  const [currentDay, setCurrentDay] = useState(1);
-  const totalDays = itinerary.totalDays || itinerary.days?.length;
-  const days = itinerary.days || [];
+  const totalDays = itinerary?.totalDays || itinerary?.days?.length || 1;
+  const days = itinerary?.days || [];
 
   return (
     <div>

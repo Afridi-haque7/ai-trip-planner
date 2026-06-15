@@ -97,6 +97,10 @@ const DAILY_COSTS_USD: Record<string, {
   "paris":          { food: { low: 22, medium: 60,  luxury: 190 }, transport: { low: 8,  medium: 18,  luxury: 55  } },
   "amsterdam":      { food: { low: 20, medium: 55,  luxury: 175 }, transport: { low: 8,  medium: 16,  luxury: 50  } },
   "rome":           { food: { low: 18, medium: 50,  luxury: 160 }, transport: { low: 6,  medium: 14,  luxury: 45  } },
+  "naples":         { food: { low: 15, medium: 40,  luxury: 130 }, transport: { low: 5,  medium: 12,  luxury: 38  } },
+  "milan":          { food: { low: 20, medium: 55,  luxury: 175 }, transport: { low: 7,  medium: 16,  luxury: 50  } },
+  "venice":         { food: { low: 22, medium: 58,  luxury: 185 }, transport: { low: 8,  medium: 18,  luxury: 55  } },
+  "florence":       { food: { low: 18, medium: 50,  luxury: 160 }, transport: { low: 6,  medium: 13,  luxury: 42  } },
   "barcelona":      { food: { low: 18, medium: 48,  luxury: 150 }, transport: { low: 6,  medium: 14,  luxury: 45  } },
   "madrid":         { food: { low: 16, medium: 45,  luxury: 145 }, transport: { low: 6,  medium: 13,  luxury: 40  } },
   "frankfurt":      { food: { low: 18, medium: 50,  luxury: 160 }, transport: { low: 7,  medium: 15,  luxury: 45  } },
@@ -110,7 +114,6 @@ const DAILY_COSTS_USD: Record<string, {
   "oslo":           { food: { low: 30, medium: 75,  luxury: 220 }, transport: { low: 12, medium: 22,  luxury: 65  } },
   "copenhagen":     { food: { low: 28, medium: 70,  luxury: 210 }, transport: { low: 10, medium: 20,  luxury: 60  } },
   "moscow":         { food: { low: 12, medium: 30,  luxury: 95  }, transport: { low: 4,  medium: 10,  luxury: 30  } },
-  "milan":          { food: { low: 18, medium: 50,  luxury: 160 }, transport: { low: 6,  medium: 14,  luxury: 45  } },
   "brussels":       { food: { low: 20, medium: 52,  luxury: 165 }, transport: { low: 7,  medium: 15,  luxury: 45  } },
   "warsaw":         { food: { low: 10, medium: 25,  luxury: 80  }, transport: { low: 4,  medium: 9,   luxury: 28  } },
   "dublin":         { food: { low: 22, medium: 58,  luxury: 180 }, transport: { low: 8,  medium: 17,  luxury: 50  } },
@@ -248,10 +251,12 @@ export function getDailyTripCosts(
   );
 
   // Build min/avg/max range: ±20% around average
+  // Return native USD so the downstream Budget Agent can apply the single unified live USD rate
+  // instead of silently caching a drifted static lookup.
   const toRange = (avgUSD: number) => ({
-    min: Math.round(convertCurrencySync(avgUSD * 0.8, "USD", currency)),
-    avg: Math.round(convertCurrencySync(avgUSD,       "USD", currency)),
-    max: Math.round(convertCurrencySync(avgUSD * 1.25,"USD", currency)),
+    min: Math.round(avgUSD * 0.8),
+    avg: Math.round(avgUSD),
+    max: Math.round(avgUSD * 1.25),
   });
 
   const foodRange = toRange(foodUSD);
@@ -259,13 +264,13 @@ export function getDailyTripCosts(
 
   console.log(
     `[Daily Costs] ${destination} | ${budgetLevel} | source: ${source} | ` +
-    `food: ${foodRange.avg} ${currency}/day | transport: ${transportRange.avg} ${currency}/day`
+    `food: ${foodRange.avg} USD/day | transport: ${transportRange.avg} USD/day`
   );
 
   return {
     food:      { min: foodRange.min,      avg: foodRange.avg,      max: foodRange.max      },
     transport: { min: transportRange.min, avg: transportRange.avg, max: transportRange.max },
-    currency,
+    currency: "USD",
     destination,
     budgetLevel,
     totalFood: {
